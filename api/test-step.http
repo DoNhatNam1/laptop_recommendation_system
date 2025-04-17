@@ -1,0 +1,530 @@
+### Test API Step 1 Stage 1 - Laptop Văn phòng (Tối ưu dữ liệu - chỉ gửi các so sánh > 1)
+POST http://localhost:5000/api/test-step1-stage1
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+
+### Test API Step 1 Stage 2 - Tính tổng cột (Tối ưu dữ liệu)
+POST http://localhost:5000/api/test-step1-stage2
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+
+### Test API Step 1 Stage 3 - Chuẩn hóa ma trận (Tối ưu dữ liệu)
+POST http://localhost:5000/api/test-step1-stage3
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+
+### Test API Step 1 Stage 4 - Tính trọng số tiêu chí (Tối ưu dữ liệu)
+POST http://localhost:5000/api/test-step1-stage4
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+### Test API Step 1 Stage 5 - Tính vector nhất quán
+POST http://localhost:5000/api/test-step1-stage5
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+### Test API Step 1 Stage 6 - Tính lambda_max
+POST http://localhost:5000/api/test-step1-stage6
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+### Test API Step 1 Stage 7 - Tính Consistency Index (CI)
+POST http://localhost:5000/api/test-step1-stage7
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+### Test API Step 1 Stage 8 - Tính Consistency Ratio (CR) và kiểm tra tính nhất quán
+POST http://localhost:5000/api/test-step1-stage8
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+### Test API Step 1 Stage 8 - Tính Consistency Ratio (CR > 0.1, không nhất quán)
+POST http://localhost:5000/api/test-step1-stage8
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 5 },         
+    { "row": "Giá", "column": "Màn hình", "value": 4 },          
+    { "row": "Màn hình", "column": "Hiệu năng", "value": 3 },    
+    { "row": "Hiệu năng", "column": "Pin", "value": 7 },        
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 10 },            
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Độ bền", "value": "3/2" },     
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+
+### API Test Chỉ Lọc Laptop (Stage 1)
+POST http://localhost:5000/api/test/test-step2-stage1
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+  { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+  { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+  { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+  { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+  { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+  { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+  { "row": "Giá", "column": "Pin", "value": "5/2" },
+  { "row": "Giá", "column": "Thiết kế", "value": 3 },
+  { "row": "Giá", "column": "Độ bền", "value": 3 },
+  { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+  { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+  { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+  { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+  { "row": "Pin", "column": "Độ bền", "value": 2 },
+  { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+### API Test Toàn Bộ Quy Trình từ Step 1 đến Step 2 Stage 2
+POST http://localhost:5000/api/test-step2-stage2
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+  { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+  { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+  { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+  { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+  { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+  { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+  { "row": "Giá", "column": "Pin", "value": "5/2" },
+  { "row": "Giá", "column": "Thiết kế", "value": 3 },
+  { "row": "Giá", "column": "Độ bền", "value": 3 },
+  { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+  { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+  { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+  { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+  { "row": "Pin", "column": "Độ bền", "value": 2 },
+  { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+]
+}
+
+### API Test Toàn Bộ Quy Trình từ Step 1 đến Step 2 Stage 3
+POST http://localhost:5000/api/test-step2-stage3
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+  { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+  { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+  { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+  { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+  { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+  { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+  { "row": "Giá", "column": "Pin", "value": "5/2" },
+  { "row": "Giá", "column": "Thiết kế", "value": 3 },
+  { "row": "Giá", "column": "Độ bền", "value": 3 },
+  { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+  { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+  { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+  { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+  { "row": "Pin", "column": "Độ bền", "value": 2 },
+  { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+]
+}
+
+### API Test Toàn Bộ Quy Trình từ Step 1 đến Step 2 Stage 4
+POST http://localhost:5000/api/test-step2-stage4
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+  { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+  { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+  { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+  { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+  { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+  { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+  { "row": "Giá", "column": "Pin", "value": "5/2" },
+  { "row": "Giá", "column": "Thiết kế", "value": 3 },
+  { "row": "Giá", "column": "Độ bền", "value": 3 },
+  { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+  { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+  { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+  { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+  { "row": "Pin", "column": "Độ bền", "value": 2 },
+  { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+]
+}
+
+### API Test Toàn Bộ Quy Trình từ Step 1 đến Step 2 Stage 5
+POST http://localhost:5000/api/test-step2-stage5
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+  { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+  { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+  { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+  { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+  { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+  { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+  { "row": "Giá", "column": "Pin", "value": "5/2" },
+  { "row": "Giá", "column": "Thiết kế", "value": 3 },
+  { "row": "Giá", "column": "Độ bền", "value": 3 },
+  { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+  { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+  { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+  { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+  { "row": "Pin", "column": "Độ bền", "value": 2 },
+  { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+]
+}
+
+### API Test Toàn Bộ Quy Trình từ Step 1 đến Step 2 Stage 6
+POST http://localhost:5000/api/test-step2-stage6
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+### API Test Toàn Bộ Quy Trình từ Step 1 đến Step 2 Stage 7
+POST http://localhost:5000/api/test-step2-stage7
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+### API Test Toàn Bộ Quy Trình từ Step 1 đến Step 2 Stage 8
+POST http://localhost:5000/api/test-step2-stage8
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/2" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
+    { "row": "Pin", "column": "Độ bền", "value": 2 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}

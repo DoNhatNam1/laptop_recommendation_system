@@ -1,0 +1,33 @@
+Bước 1: Người dùng sắp xếp tiêu chí bằng Drag and Drop
+✅ Hiển thị danh sách tiêu chí có thể kéo thả:
+
+Người dùng có thể sắp xếp lại các tiêu chí bằng cách kéo thả.
+
+Danh sách tiêu chí bao gồm:
+
+Giá
+
+Thiết kế
+
+Hiệu năng (CPU, GPU)
+
+Màn hình
+
+Thời lượng pin
+
+✅ Lưu lại thứ tự tiêu chí đã sắp xếp dưới dạng danh sách có thứ tự cụ thể.
+
+Bước 2: Lấy ma trận tiêu chí của Nhóm khách hàng
+✅ Tự động xác định Nhóm khách hàng dựa trên thứ tự tiêu chí:
+
+So sánh thứ tự tiêu chí của người dùng với dữ liệu nhóm khách hàng có sẵn.
+
+Xác định nhóm khách hàng phù hợp nhất và lấy ma trận tiêu chí tương ứng.
+
+Ví dụ:
+
+Nếu thứ tự tiêu chí là Hiệu năng > Màn hình > Giá, hệ thống xác định nhóm khách hàng là Gaming.
+
+Nếu thứ tự tiêu chí là Giá > Pin > Thiết kế, hệ thống xác định nhóm khách hàng là Văn phòng.
+
+✅ Lập tức lấy ma trận so sánh cặp tiêu chí theo nhóm khách hàng đã xác định.

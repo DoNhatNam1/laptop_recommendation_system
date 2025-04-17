@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Gộp frontend và nginx thành một service duy nhất
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - laptop-recommendation-network
+    
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+    ports:
+      - "5000:5000"
+    environment:
+    - FLASK_APP=main.py
+    - FLASK_ENV=production
+    - HOST=0.0.0.0
+    - POSTGRES_HOST=postgres
+    - POSTGRES_PORT=5432
+    - POSTGRES_DB=laptop_db
+    - POSTGRES_USER=admin
+    - POSTGRES_PASSWORD=secure_password
+    command: python main.py
+    depends_on:
+    - postgres
+    networks:
+      - laptop-recommendation-network
+      
+  # Thêm PostgreSQL nếu cần
+  postgres:
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=laptop_db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=secure_password
+    ports:
+      - "5432:5432"
+    networks:
+      - laptop-recommendation-network
+
+networks:
+  laptop-recommendation-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
