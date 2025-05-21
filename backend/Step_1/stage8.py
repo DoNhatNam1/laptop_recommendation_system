@@ -1,110 +1,144 @@
-from .stage1 import get_comparison_matrix
-from .utils import (
-    normalize_matrix, 
-    calculate_criteria_weights, 
-    calculate_consistency_vector, 
-    calculate_lambda_max,
-    calculate_consistency_index,
-    get_random_index,
-    calculate_all_consistency_metrics
-)
+from typing import Dict, Any, List
+import traceback
 
-def process_user_request_stage8(user_data):
-    """Stage 8 - Tính Consistency Ratio (CR) và kiểm tra tính nhất quán"""
-    if not user_data:
-        return {"error": "Không có dữ liệu yêu cầu từ người dùng"}
+def get_random_index(n: int) -> float:
+    """
+    Lấy Random Index (RI) cho ma trận kích thước n
     
-    matrix, criteria_order = get_comparison_matrix(user_data)
+    Parameters:
+    - n: Kích thước ma trận
     
-    if matrix is None:
-        return {"error": "Không thể xây dựng ma trận từ dữ liệu so sánh"}
+    Returns:
+    - Random Index (RI)
+    """
+    # Bảng RI cho các kích thước ma trận khác nhau
+    ri_table = {
+        1: 0.00, 2: 0.00, 3: 0.58, 4: 0.90, 5: 1.12,
+        6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49
+    }
     
-    # Ma trận nhỏ (1x1 hoặc 2x2) luôn nhất quán
-    n = len(matrix)
-    if n <= 2:
-        # Tạo dữ liệu trả về cho ma trận nhỏ
-        weights = [1/n] * n
+    return ri_table.get(n, 1.49)  # Default to 1.49 for n > 10
+
+def calculate_consistency_ratio(stage7_result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Stage 8 - Tính Consistency Ratio (CR) và đánh giá tính nhất quán
+    
+    Parameters:
+    - stage7_result: Kết quả từ Stage 7 chứa CI
+    
+    Returns:
+    - Dictionary chứa CR và đánh giá nhất quán
+    """
+    try:
+        # Kiểm tra đầu vào
+        if "status" in stage7_result and stage7_result["status"] == "error":
+            return stage7_result
         
-        criteria_weights = []
-        for i, criterion in enumerate(criteria_order):
-            criteria_weights.append({
-                "criterion": criterion,
-                "weight": 1/n,
-                "percentage": round(100/n, 1)
-            })
+        CI = stage7_result.get("CI")
+        matrix = stage7_result.get("matrix")
         
-        return {
-            "status": "success",
-            "stage": "stage8",
-            "matrix": {
-                "criteria_order": criteria_order,
-                "criteria_count": n,
-                "data": [[round(val, 3) for val in row] for row in matrix]
-            },
-            "weights": {
-                "values": weights,
-                "formatted": criteria_weights
-            },
-            "consistency": {
-                "lambda_max": n,
-                "CI": 0,
+        if CI is None or matrix is None:
+            return {
+                "status": "error",
+                "message": "Không tìm thấy CI hoặc ma trận từ Stage 7"
+            }
+        
+        # Xử lý đặc biệt cho ma trận kích thước nhỏ (1x1 hoặc 2x2)
+        n = len(matrix)
+        if n <= 2:
+            result = {
+                **stage7_result,
                 "RI": 0,
                 "CR": 0,
                 "is_consistent": True,
+                "formula": "CR = CI / RI = 0 (với ma trận kích thước ≤ 2)",
+                "calculation": "0 / 0 = 0 (được định nghĩa là 0)",
                 "message": "Ma trận luôn nhất quán khi chỉ có 1-2 tiêu chí."
             }
-        }
-    
-    # Tính toán tất cả các chỉ số nhất quán
-    normalized_matrix = normalize_matrix(matrix)
-    weights = calculate_criteria_weights(normalized_matrix)
-    
-    # Tính CI và các chỉ số liên quan
-    consistency_vector = calculate_consistency_vector(matrix, weights)
-    lambda_max = calculate_lambda_max(consistency_vector)
-    CI = calculate_consistency_index(lambda_max, n)
-    RI = get_random_index(n)
-    CR = CI / RI if RI > 0 else 0
-    
-    # Đánh giá nhất quán
-    is_consistent = CR < 0.1
-    
-    # Tạo thông báo
-    if is_consistent:
-        message = f"Ma trận nhất quán (CR = {CR:.3f} < 0.1)."
-    else:
-        message = f"Ma trận KHÔNG nhất quán (CR = {CR:.3f} > 0.1). Cần xem xét lại các đánh giá."
-    
-    # Format trọng số
-    criteria_weights = []
-    for i, criterion in enumerate(criteria_order):
-        if i < len(weights):
-            criteria_weights.append({
-                "criterion": criterion,
-                "weight": round(weights[i], 3),
-                "percentage": round(weights[i] * 100, 1)
-            })
-    
-    # Định dạng kết quả tập trung vào CR
-    return {
-        "status": "success",
-        "stage": "stage8",
-        "matrix": {
-            "criteria_order": criteria_order,
-            "criteria_count": n,
-            "data": [[round(val, 3) for val in row] for row in matrix]
-        },
-        "normalized_matrix": [[round(val, 3) for val in row] for row in normalized_matrix],
-        "weights": {
-            "values": [round(val, 3) for val in weights],
-            "formatted": criteria_weights
-        },
-        "consistency": {
-            "lambda_max": round(float(lambda_max), 3),
-            "CI": round(float(CI), 3),
-            "RI": round(float(RI), 3),
-            "CR": round(float(CR), 3),
+            
+            # Kết quả cuối cùng
+            final_result = prepare_final_result(result)
+            return final_result
+        
+        # Lấy Random Index (RI)
+        RI = get_random_index(n)
+        
+        # Tính CR
+        CR = CI / RI if RI > 0 else 0
+        
+        # Đánh giá nhất quán
+        is_consistent = CR < 0.1
+        
+        # Tạo thông báo
+        if is_consistent:
+            message = f"Ma trận nhất quán (CR = {CR:.3f} < 0.1)."
+        else:
+            message = f"Ma trận KHÔNG nhất quán (CR = {CR:.3f} > 0.1). Cần xem xét lại các đánh giá."
+        
+        # Định dạng công thức và tính toán
+        formula = "CR = CI / RI"
+        calculation = f"{round(CI, 3)} / {round(RI, 3)} = {round(CR, 3)}"
+        
+        # Kết hợp kết quả
+        result = {
+            **stage7_result,
+            "RI": round(RI, 3),
+            "CR": round(CR, 3),
             "is_consistent": is_consistent,
+            "formula": formula,
+            "calculation": calculation,
             "message": message
         }
+        
+        # Kết quả cuối cùng
+        final_result = prepare_final_result(result)
+        return final_result
+        
+    except Exception as e:
+        print(f"ERROR stage8 - {str(e)}")
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": f"Lỗi khi tính Consistency Ratio: {str(e)}"
+        }
+
+def prepare_final_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Chuẩn bị kết quả cuối cùng với định dạng tốt hơn
+    """
+    # Tạo consistency object
+    consistency = {
+        "vector": result.get("consistency_vector", []),
+        "lambda_max": result.get("lambda_max", 0),
+        "CI": result.get("CI", 0),
+        "RI": result.get("RI", 0),
+        "CR": result.get("CR", 0),
+        "is_consistent": result.get("is_consistent", False),
+        "message": result.get("message", "")
     }
+    
+    # Tạo weights object
+    weights = {
+        "values": result.get("weights", []),
+        "formatted": result.get("weights_formatted", [])
+    }
+    
+    # Tạo ma trận object
+    matrix_obj = {
+        "criteria_order": result.get("criteria_order", []),
+        "data": result.get("matrix_data", [])
+    }
+    
+    # Chuẩn bị kết quả cuối cùng
+    final_result = {
+        "status": "success",
+        "step": "step1_complete",
+        "matrix": matrix_obj,
+        "column_sums": result.get("column_sums", []),
+        "normalized_matrix": result.get("normalized_matrix_data", []),
+        "weights": weights,
+        "consistency": consistency
+    }
+    
+    # Trả về kết quả cuối cùng
+    return final_result

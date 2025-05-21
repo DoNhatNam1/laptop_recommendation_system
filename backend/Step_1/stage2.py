@@ -1,27 +1,73 @@
-from .stage1 import get_comparison_matrix, process_user_request_stage1
-from .utils import calculate_matrix_column_sums
+from typing import Dict, Any, List
+import traceback
 
-def process_user_request_stage2(user_data):
-    """Stage 2 - Tính tổng cột"""
-    # Tái sử dụng kết quả từ stage1
-    stage1_result = process_user_request_stage1(user_data)
+def calculate_matrix_column_sums(matrix: List[List[float]]) -> List[float]:
+    """
+    Tính tổng các cột của ma trận
     
-    if "error" in stage1_result:
-        return stage1_result
+    Parameters:
+    - matrix: Ma trận đầu vào
     
-    # Lấy ma trận từ stage1 hoặc tính toán lại nếu cần
-    matrix, criteria_order = get_comparison_matrix(user_data)
+    Returns:
+    - Danh sách tổng cột
+    """
+    if not matrix or len(matrix) == 0:
+        return []
     
-    # Tính toán tổng cột
-    col_sums = calculate_matrix_column_sums(matrix)
+    n = len(matrix)
+    col_sums = [0.0] * n
     
-    # Kết hợp kết quả từ stage1 và thêm kết quả mới
-    result = {
-        "status": "success",
-        "stage": "stage2",
-        "matrix": stage1_result["matrix"],  # Tái sử dụng từ stage1
-        "column_sums": [round(sum_val, 3) for sum_val in col_sums],
-        "validation": stage1_result.get("validation", {})  # Tái sử dụng từ stage1 nếu có
-    }
+    for j in range(n):
+        for i in range(n):
+            col_sums[j] += matrix[i][j]
+            
+    return col_sums
+
+def calculate_column_sums(stage1_result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Stage 2 - Tính tổng cột của ma trận so sánh
     
-    return result
+    Parameters:
+    - stage1_result: Kết quả từ Stage 1 chứa ma trận so sánh
+    
+    Returns:
+    - Dictionary chứa ma trận và tổng cột
+    """
+    try:
+        # Kiểm tra đầu vào
+        if "status" in stage1_result and stage1_result["status"] == "error":
+            return stage1_result
+        
+        matrix = stage1_result.get("matrix")
+        criteria_order = stage1_result.get("criteria_order")
+        
+        if matrix is None or criteria_order is None:
+            return {
+                "status": "error",
+                "message": "Không tìm thấy ma trận hoặc danh sách tiêu chí từ Stage 1"
+            }
+        
+        # Tính tổng cột
+        col_sums = calculate_matrix_column_sums(matrix)
+        
+        # Kết hợp kết quả
+        result = {
+            "status": "success",
+            "stage": "stage2",
+            "matrix": matrix,
+            "matrix_data": stage1_result.get("matrix_data", []),
+            "criteria_order": criteria_order,
+            "criteria_count": len(criteria_order),
+            "column_sums": [round(sum_val, 3) for sum_val in col_sums],
+            "validation": stage1_result.get("validation", {})
+        }
+        
+        return result
+        
+    except Exception as e:
+        print(f"ERROR stage2 - {str(e)}")
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": f"Lỗi khi tính tổng cột: {str(e)}"
+        }

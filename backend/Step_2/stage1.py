@@ -13,6 +13,7 @@ def get_db_connection():
     db_user = os.environ.get('POSTGRES_USER', 'admin')
     db_password = os.environ.get('POSTGRES_PASSWORD', 'secure_password')
     
+    print(f"[DATABASE] Kết nối đến database: {db_host}:{db_port}/{db_name}")
     conn = psycopg2.connect(
         host=db_host,
         port=db_port,
@@ -52,10 +53,11 @@ def initialize_database(laptops_data=None):
             # Kiểm tra xem đã có dữ liệu chưa
             cursor.execute("SELECT COUNT(*) FROM laptops")
             count = cursor.fetchone()[0]
+            print(f"[DATABASE] Số lượng laptop hiện có trong DB: {count}")
             
             # Nếu chưa có dữ liệu và laptops_data được cung cấp, thì import
             if count == 0 and laptops_data:
-                print(f"Importing {len(laptops_data)} laptops to database...")
+                print(f"[DATABASE] Importing {len(laptops_data)} laptops to database...")
                 for laptop in laptops_data:
                     cursor.execute("""
                         INSERT INTO laptops 
@@ -83,13 +85,14 @@ def initialize_database(laptops_data=None):
             
     except Exception as e:
         conn.rollback()
-        print(f"Error initializing database: {str(e)}")
+        print(f"[DATABASE_ERROR] Error initializing database: {str(e)}")
         raise
     finally:
         conn.close()
 
 def load_laptops():
     """Tải danh sách laptop từ PostgreSQL database"""
+    print("\n[LOAD_LAPTOPS] Bắt đầu tải dữ liệu laptop từ database")
     try:
         conn = get_db_connection()
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -98,20 +101,34 @@ def load_laptops():
             
             # Chuyển từ RealDictRow thành dictionary
             result = [dict(laptop) for laptop in laptops]
-            print(f"Loaded {len(result)} laptops from database")
+            print(f"[LOAD_LAPTOPS] Đã tải {len(result)} laptop từ database")
+            
+            # Log các laptop đầu tiên để debug
+            if result:
+                print(f"[LOAD_LAPTOPS] Mẫu laptop đầu tiên: {result[0]['name']}")
+                print(f"[LOAD_LAPTOPS] Các thuộc tính laptop mẫu: {list(result[0].keys())}")
+                
             return result
     except Exception as e:
-        print(f"Lỗi đọc dữ liệu từ database: {e}")
+        print(f"[LOAD_LAPTOPS_ERROR] Lỗi đọc dữ liệu từ database: {e}")
         
         # Fallback: Đọc từ file JSON nếu kết nối database thất bại
         try:
             base_dir = Path(__file__).parent.parent
             laptops_path = base_dir / "consistent_laptops.json"
+            print(f"[LOAD_LAPTOPS] Fallback: Đọc dữ liệu từ file JSON: {laptops_path}")
+            
             with open(laptops_path, 'r', encoding='utf-8') as f:
-                print("Fallback: Đọc dữ liệu từ file JSON")
-                return json.load(f)
+                json_data = json.load(f)
+                print(f"[LOAD_LAPTOPS] Đã đọc {len(json_data)} laptop từ file JSON")
+                
+                # Log laptop đầu tiên từ JSON
+                if json_data:
+                    print(f"[LOAD_LAPTOPS] Mẫu laptop đầu tiên từ JSON: {json_data[0].get('name', 'N/A')}")
+                
+                return json_data
         except Exception as json_err:
-            print(f"Lỗi đọc file JSON: {json_err}")
+            print(f"[LOAD_LAPTOPS_ERROR] Lỗi đọc file JSON: {json_err}")
             return []
 
 def filter_laptops(user_data, weights_data=None):
@@ -126,8 +143,16 @@ def filter_laptops(user_data, weights_data=None):
     - Dictionary chứa trạng thái, thông báo và danh sách laptop đã lọc
     """
     try:
+        print(f"\n[FILTER_LAPTOPS] ==== BẮT ĐẦU LỌC LAPTOP ====")
+        print(f"[FILTER_LAPTOPS] Dữ liệu người dùng: {user_data}")
+        
+        if weights_data:
+            print(f"[FILTER_LAPTOPS] Trọng số tiêu chí: {weights_data.get('criteria_weights', {})}")
+            print(f"[FILTER_LAPTOPS] CR: {weights_data.get('consistency', {}).get('CR', 'N/A')}")
+        
         # Kiểm tra CR từ kết quả Step_1 nếu có
         if weights_data and weights_data.get('consistency') and weights_data['consistency'].get('CR', 0) > 0.1:
+            print(f"[FILTER_LAPTOPS] CR > 0.1, cần đánh giá lại")
             return {
                 "status": "error",
                 "message": "Độ nhất quán CR > 0.1. Vui lòng thực hiện lại bước 1.",
@@ -143,11 +168,30 @@ def filter_laptops(user_data, weights_data=None):
         fromScreenSize = user_data.get('fromScreenSize', 0)
         toScreenSize = user_data.get('toScreenSize', 30)
         
+        print(f"[FILTER_LAPTOPS] Bộ lọc: usage={usage}, budget={fromBudget}-{toBudget}, "
+              f"performance={performance}, design={design}, "
+              f"screen={fromScreenSize}-{toScreenSize}")
+        
         # Tải dữ liệu laptop
         all_laptops = load_laptops()
+        print(f"[FILTER_LAPTOPS] Tổng số laptop trước khi lọc: {len(all_laptops)}")
+        
+        # Log một số laptop đầu để kiểm tra
+        if all_laptops and len(all_laptops) > 0:
+            print(f"[FILTER_LAPTOPS] Mẫu dữ liệu laptop đầu tiên:")
+            first_laptop = all_laptops[0]
+            for key, value in first_laptop.items():
+                print(f"  - {key}: {value}")
         
         # Áp dụng bộ lọc
         filtered_laptops = []
+        
+        # Biến đếm để theo dõi lý do loại bỏ
+        rejected_by_usage = 0
+        rejected_by_budget = 0
+        rejected_by_screen = 0
+        rejected_by_performance = 0
+        rejected_by_design = 0
         
         for laptop in all_laptops:
             matches = True
@@ -156,24 +200,34 @@ def filter_laptops(user_data, weights_data=None):
             if usage and usage != "all":
                 if laptop.get("usage", "") != usage:
                     matches = False
+                    rejected_by_usage += 1
+                    continue
             
             # Lọc theo budget
             price = laptop.get("price", 0)
             if price < fromBudget or price > toBudget:
                 matches = False
+                rejected_by_budget += 1
+                continue
             
             # Lọc theo screen size
             screen = laptop.get("screen", 0)
             if screen < fromScreenSize or screen > toScreenSize:
                 matches = False
+                rejected_by_screen += 1
+                continue
             
             # Lọc theo performance (basic, smooth, high)
             if performance and not check_performance_match(laptop, performance):
                 matches = False
+                rejected_by_performance += 1
+                continue
                 
             # Lọc theo design (lightweight, business, gaming, premium, convertible)
             if design and laptop.get("design", "") != design:
                 matches = False
+                rejected_by_design += 1
+                continue
             
             if matches:
                 # Thêm laptop vào danh sách lọc và tính điểm cho các tiêu chí
@@ -189,6 +243,26 @@ def filter_laptops(user_data, weights_data=None):
                 
                 filtered_laptops.append(laptop_with_scores)
         
+        # Log kết quả lọc
+        print(f"[FILTER_LAPTOPS] ==== KẾT QUẢ LỌC ====")
+        print(f"[FILTER_LAPTOPS] Tổng số laptop phù hợp: {len(filtered_laptops)}")
+        print(f"[FILTER_LAPTOPS] Loại bỏ vì không đúng usage: {rejected_by_usage}")
+        print(f"[FILTER_LAPTOPS] Loại bỏ vì không đúng ngân sách: {rejected_by_budget}")
+        print(f"[FILTER_LAPTOPS] Loại bỏ vì không đúng kích thước màn hình: {rejected_by_screen}")
+        print(f"[FILTER_LAPTOPS] Loại bỏ vì không đáp ứng hiệu năng: {rejected_by_performance}")
+        print(f"[FILTER_LAPTOPS] Loại bỏ vì không đúng thiết kế: {rejected_by_design}")
+        
+        # Log một số laptop sau khi lọc
+        if filtered_laptops:
+            print(f"\n[FILTER_LAPTOPS] Danh sách laptop phù hợp:")
+            for idx, laptop in enumerate(filtered_laptops[:3]):  # Chỉ hiển thị 3 laptop đầu tiên
+                print(f"  {idx+1}. {laptop.get('name', 'N/A')} - {laptop.get('price', 0):,} VND")
+                print(f"     CPU: {laptop.get('cpu', 'N/A')}")
+                print(f"     Điểm hiệu năng: {laptop.get('performance_score', 0)}")
+                print(f"     Điểm giá: {laptop.get('price_score', 0)}")
+        else:
+            print("[FILTER_LAPTOPS] Không tìm thấy laptop phù hợp")
+        
         return {
             "status": "success",
             "message": f"Đã lọc được {len(filtered_laptops)} laptop phù hợp",
@@ -203,7 +277,9 @@ def filter_laptops(user_data, weights_data=None):
         }
     
     except Exception as e:
-        print(f"Error in filter_laptops: {str(e)}")
+        print(f"[FILTER_LAPTOPS_ERROR] Lỗi khi lọc laptop: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
             "status": "error",
             "message": f"Lỗi khi lọc laptop: {str(e)}",

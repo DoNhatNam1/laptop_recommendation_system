@@ -1,44 +1,83 @@
-from .stage1 import get_comparison_matrix
-from .stage5 import process_user_request_stage5
-from .utils import calculate_lambda_max
+from typing import Dict, Any, List
+import traceback
 
-def process_user_request_stage6(user_data):
-    """Stage 6 - Tính lambda_max (giá trị riêng lớn nhất)"""
-    # Tái sử dụng kết quả từ stage5
-    stage5_result = process_user_request_stage5(user_data)
+def calculate_lambda_max(consistency_vector: List[float]) -> float:
+    """
+    Tính lambda max (giá trị riêng lớn nhất) từ vector nhất quán
     
-    if "error" in stage5_result:
-        return stage5_result
+    Parameters:
+    - consistency_vector: Vector nhất quán
     
-    # Lấy ma trận từ stage1 hoặc tính toán lại nếu cần
-    matrix, criteria_order = get_comparison_matrix(user_data)
+    Returns:
+    - Giá trị lambda max
+    """
+    if not consistency_vector:
+        return 0.0
     
-    # Xử lý đặc biệt cho ma trận 1x1 hoặc 2x2
-    n = len(matrix)
-    if n <= 2:
-        # Với ma trận 1x1 và 2x2, lambda_max = n
+    return sum(consistency_vector) / len(consistency_vector)
+
+def calculate_lambda_max_stage(stage5_result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Stage 6 - Tính lambda max (giá trị riêng lớn nhất)
+    
+    Parameters:
+    - stage5_result: Kết quả từ Stage 5 chứa vector nhất quán
+    
+    Returns:
+    - Dictionary chứa lambda max
+    """
+    try:
+        # Kiểm tra đầu vào
+        if "status" in stage5_result and stage5_result["status"] == "error":
+            return stage5_result
         
-        # Kết hợp kết quả từ stage5 và thêm kết quả mới cho ma trận nhỏ
-        result = stage5_result.copy()
-        result["stage"] = "stage6"
-        result["lambda_max"] = n
-        result["message"] = f"Với ma trận {n}x{n}, λmax luôn bằng {n}."
+        consistency_vector = stage5_result.get("consistency_vector")
+        matrix = stage5_result.get("matrix")
+        
+        if consistency_vector is None or matrix is None:
+            return {
+                "status": "error",
+                "message": "Không tìm thấy vector nhất quán hoặc ma trận từ Stage 5"
+            }
+        
+        # Xử lý đặc biệt cho ma trận kích thước nhỏ (1x1 hoặc 2x2)
+        n = len(matrix)
+        if n <= 2:
+            lambda_max = n
+            
+            result = {
+                **stage5_result,
+                "lambda_max": lambda_max,
+                "formula": f"λmax = {n} (với ma trận {n}x{n})",
+                "calculation": f"λmax = {n}",
+                "message": f"Với ma trận {n}x{n}, λmax luôn bằng {n}."
+            }
+            
+            return result
+        
+        # Tính lambda_max
+        lambda_max = calculate_lambda_max(consistency_vector)
+        
+        # Định dạng công thức và tính toán
+        formula = "λmax = (Σλi) / n = " + \
+                  f"{' + '.join([f'{round(val, 3)}' for val in consistency_vector])} / {n}"
+        calculation = f"{round(sum(consistency_vector), 3)} / {n} = {round(lambda_max, 3)}"
+        
+        # Kết hợp kết quả
+        result = {
+            **stage5_result,
+            "lambda_max": round(lambda_max, 3),
+            "formula": formula,
+            "calculation": calculation,
+            "message": f"Đã tính toán λmax = {round(lambda_max, 3)}"
+        }
         
         return result
-    
-    # Lấy vector nhất quán từ stage5
-    consistency_vector = [float(val) for val in stage5_result["consistency_vector"]["values"]]
-    
-    # Tính lambda_max
-    lambda_max = calculate_lambda_max(consistency_vector)
-    
-    # Kết hợp kết quả từ stage5 và thêm kết quả mới
-    result = stage5_result.copy()
-    result["stage"] = "stage6"
-    result["lambda_max"] = round(float(lambda_max), 3)
-    result["formula"] = "λmax = (Σλi) / n = " + \
-                       f"{' + '.join([f'{round(val, 3)}' for val in consistency_vector])} / {n}"
-    result["calculation"] = f"{round(sum(consistency_vector), 3)} / {n} = {round(float(lambda_max), 3)}"
-    result["message"] = f"Đã tính toán λmax = {round(float(lambda_max), 3)}"
-    
-    return result
+        
+    except Exception as e:
+        print(f"ERROR stage6 - {str(e)}")
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": f"Lỗi khi tính lambda max: {str(e)}"
+        }

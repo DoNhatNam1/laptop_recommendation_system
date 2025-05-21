@@ -88,7 +88,8 @@ function UsageSelection() {
     // Add animation before navigation
     setIsSubmitting(true)
     setTimeout(() => {
-      navigate('/criteria', { state: { usage } })
+      // Changed to use URL query parameters instead of route state
+      navigate(`/criteria?usage=${encodeURIComponent(usage)}`)
     }, 700)
   }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -40,19 +40,6 @@ const itemVariants = {
   visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
 };
 
-const scaleUpVariants = {
-  hidden: { scale: 0.95, opacity: 0 },
-  visible: {
-    scale: 1,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 20,
-    },
-  },
-};
-
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: {
@@ -83,21 +70,9 @@ const staggerContainerVariants = {
   },
 };
 
-const iconPulse = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.1, 1],
-    transition: {
-      repeat: Infinity,
-      repeatType: "mirror" as "mirror",
-      duration: 2,
-    },
-  },
-};
-
 function CriteriaSelection() {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("performance");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -108,14 +83,15 @@ function CriteriaSelection() {
   const [design, setDesign] = useState<string | null>(null);
   const [screenSize, setScreenSize] = useState<string | null>(null);
 
-  // Get usage from previous screen
+  // Get usage from URL parameters
   useEffect(() => {
-    if (location.state?.usage) {
-      setUsage(location.state.usage);
+    const usageParam = searchParams.get('usage');
+    if (usageParam) {
+      setUsage(usageParam);
     } else {
       setErrorMessage("Vui lòng quay lại trang trước để chọn mục đích sử dụng");
     }
-  }, [location.state]);
+  }, [searchParams]);
 
   useEffect(() => {
     // Tự động xóa thông báo lỗi sau 5 giây
@@ -197,7 +173,6 @@ function CriteriaSelection() {
 
   // Animation for selection change
   const handleSelection = (type: string, value: string) => {
-
     switch (type) {
       case "budget":
         setBudget(value);
@@ -234,24 +209,23 @@ function CriteriaSelection() {
         return;
       }
 
-      // Navigate to the next page with all parameters
-      navigate("/criteria-pairwise", {
-        state: {
-          usage,
-          fromBudget,
-          toBudget,
-          performance: getPerformanceValue(performance),
-          design: getDesignValue(design),
-          fromScreenSize,
-          toScreenSize,
-        },
-      });
+      // Create URL parameters
+      const params = new URLSearchParams();
+      params.append('usage', usage);
+      params.append('fromBudget', fromBudget.toString());
+      params.append('toBudget', toBudget.toString());
+      params.append('performance', getPerformanceValue(performance));
+      params.append('design', getDesignValue(design));
+      params.append('fromScreenSize', fromScreenSize.toString());
+      params.append('toScreenSize', toScreenSize.toString());
+      
+      // Navigate to custom criteria page with URL parameters
+      navigate(`/custom-criteria?${params.toString()}`);
     } else if (activeTab === "performance" && (!budget || !performance)) {
       setErrorMessage(
         "Vui lòng chọn hiệu năng và ngân sách trước khi tiếp tục."
       );
     }
-
   };
 
   // Progress percentage for the progress bar - adjusted for 2 steps
@@ -324,867 +298,370 @@ function CriteriaSelection() {
           />
         </motion.div>
 
-        <motion.div variants={scaleUpVariants}>
-          <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger
-                  value="performance"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-600 data-[state=active]:bg-white data-[state=active]:text-indigo-600">
-                      1
-                    </span>
-                    <span>Hiệu năng & Giá</span>
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="design"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-600 data-[state=active]:bg-white data-[state=active]:text-indigo-600">
-                      2
-                    </span>
-                    <span>Thiết kế & Màn hình</span>
-                  </span>
-                </TabsTrigger>
-              </TabsList>
+        {/* Rest of your component remains unchanged */}
+        {/* ... */}
 
-              <div className="relative overflow-hidden min-h-[550px]">
-                <AnimatePresence mode="wait">
-                  {/* Tab 1: Performance and Budget */}
-                  {activeTab === "performance" && (
-                    <motion.div
-                      key="performance"
-                      variants={cardVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                      className="absolute w-full"
-                    >
-                      <TabsContent
-                        value="performance"
-                        className="p-4 m-0 space-y-4"
-                      >
-                        <CardContent className="pt-6">
-                          <div className="mb-6 text-center">
-                            <CardTitle className="mb-2 text-xl text-gray-800">
-                              Hiệu năng & Giá cả
-                            </CardTitle>
-                            <CardDescription>
-                              Chọn mức hiệu năng và ngân sách phù hợp
-                            </CardDescription>
-                          </div>
+        {/* Tabs container */}
+        <motion.div variants={itemVariants}>
+          <Tabs
+            defaultValue="performance"
+            value={activeTab}
+            onValueChange={handleTabChange}
+            className="w-full"
+          >
+            {/* Tab buttons */}
+            <TabsList className="w-full mb-6 border bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100/50">
+              <TabsTrigger 
+                value="performance" 
+                className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+              >
+                Hiệu năng & Ngân sách
+              </TabsTrigger>
+              <TabsTrigger 
+                value="design"
+                className="flex-1 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+              >
+                Thiết kế & Màn hình
+              </TabsTrigger>
+            </TabsList>
 
-                          <div className="mb-8">
-                            <h3 className="mb-4 text-sm font-medium">
-                              Hiệu năng mong muốn:
-                            </h3>
-                            <motion.div
-                              variants={staggerContainerVariants}
-                              className="grid gap-4 md:grid-cols-2"
-                            >
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() =>
-                                  handleSelection("performance", "office")
-                                }
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`flex items-start gap-3 rounded-lg border-2 p-4 ${
-                                    performance === "office"
-                                      ? "border-indigo-500 bg-indigo-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-indigo-300 hover:bg-indigo-50/50`}
-                                >
-                                  <motion.div
-                                    initial="initial"
-                                    animate={
-                                      performance === "office"
-                                        ? "pulse"
-                                        : "initial"
-                                    }
-                                    variants={iconPulse}
-                                    className="flex-shrink-0 p-2 mt-1 text-indigo-600 bg-indigo-100 rounded-full"
-                                  >
-                                    <Circle size={20} />
-                                  </motion.div>
-                                  <div>
-                                    <div className="mb-1 text-base font-medium leading-none">
-                                      Cân đối hiệu năng
-                                    </div>
-                                    <p className="text-sm text-gray-500">
-                                      Đáp ứng tốt các tác vụ văn phòng, trình
-                                      duyệt, học tập
-                                    </p>
-                                  </div>
-                                  {performance === "office" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="ml-auto"
-                                    >
-                                      <div className="p-1 text-white bg-indigo-500 rounded-full">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() =>
-                                  handleSelection("performance", "gaming")
-                                }
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`flex items-start gap-3 rounded-lg border-2 p-4 ${
-                                    performance === "gaming"
-                                      ? "border-red-500 bg-red-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-red-300 hover:bg-red-50/50`}
-                                >
-                                  <motion.div
-                                    initial="initial"
-                                    animate={
-                                      performance === "gaming"
-                                        ? "pulse"
-                                        : "initial"
-                                    }
-                                    variants={iconPulse}
-                                    className="flex-shrink-0 p-2 mt-1 text-red-600 bg-red-100 rounded-full"
-                                  >
-                                    <Sparkles size={20} />
-                                  </motion.div>
-                                  <div>
-                                    <div className="mb-1 text-base font-medium leading-none">
-                                      Hiệu năng mạnh
-                                    </div>
-                                    <p className="text-sm text-gray-500">
-                                      Xử lý tốt các game, đồ họa nặng, đa nhiệm
-                                      mạnh mẽ
-                                    </p>
-                                  </div>
-                                  {performance === "gaming" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="ml-auto"
-                                    >
-                                      <div className="p-1 text-white bg-red-500 rounded-full">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-                            </motion.div>
-                          </div>
-
-                          <div>
-                            <h3 className="mb-4 text-sm font-medium">
-                              Ngân sách của bạn:
-                            </h3>
-                            <motion.div
-                              variants={staggerContainerVariants}
-                              className="grid gap-4 md:grid-cols-3"
-                            >
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() => handleSelection("budget", "low")}
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`flex flex-col items-center gap-3 rounded-lg border-2 p-4 ${
-                                    budget === "low"
-                                      ? "border-green-500 bg-green-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-green-300 hover:bg-green-50/50`}
-                                >
-                                  <motion.div
-                                    initial="initial"
-                                    animate={
-                                      budget === "low" ? "pulse" : "initial"
-                                    }
-                                    variants={iconPulse}
-                                    className="rounded-full bg-green-100 p-2.5 text-green-600"
-                                  >
-                                    <DollarSign size={24} />
-                                  </motion.div>
-                                  <div className="text-lg font-medium">
-                                    5 - 15 triệu
-                                  </div>
-                                  {budget === "low" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2"
-                                    >
-                                      <div className="p-1 text-white bg-green-500 rounded-full">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() => handleSelection("budget", "mid")}
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`flex flex-col items-center gap-3 rounded-lg border-2 p-4 ${
-                                    budget === "mid"
-                                      ? "border-yellow-500 bg-yellow-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-yellow-300 hover:bg-yellow-50/50`}
-                                >
-                                  <motion.div
-                                    initial="initial"
-                                    animate={
-                                      budget === "mid" ? "pulse" : "initial"
-                                    }
-                                    variants={iconPulse}
-                                    className="rounded-full bg-yellow-100 p-2.5 text-yellow-600 relative"
-                                  >
-                                    <DollarSign size={24} />
-                                    <DollarSign
-                                      size={24}
-                                      className="absolute top-2.5 left-5"
-                                    />
-                                  </motion.div>
-                                  <div className="text-lg font-medium">
-                                    15 - 25 triệu
-                                  </div>
-                                  {budget === "mid" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2"
-                                    >
-                                      <div className="p-1 text-white bg-yellow-500 rounded-full">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() =>
-                                  handleSelection("budget", "high")
-                                }
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`flex flex-col items-center gap-3 rounded-lg border-2 p-4 ${
-                                    budget === "high"
-                                      ? "border-purple-500 bg-purple-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-purple-300 hover:bg-purple-50/50`}
-                                >
-                                  <motion.div
-                                    initial="initial"
-                                    animate={
-                                      budget === "high" ? "pulse" : "initial"
-                                    }
-                                    variants={iconPulse}
-                                    className="rounded-full bg-purple-100 p-2.5 text-purple-600 relative"
-                                  >
-                                    <DollarSign size={24} />
-                                    <DollarSign
-                                      size={24}
-                                      className="absolute top-2.5 left-5"
-                                    />
-                                    <DollarSign
-                                      size={24}
-                                      className="absolute top-2.5 left-10"
-                                    />
-                                  </motion.div>
-                                  <div className="text-lg font-medium">
-                                    25 - 50 triệu
-                                  </div>
-                                  {budget === "high" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2"
-                                    >
-                                      <div className="p-1 text-white bg-purple-500 rounded-full">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-                            </motion.div>
-                          </div>
-                        </CardContent>
-                      </TabsContent>
-                    </motion.div>
-                  )}
-
-                  {/* Tab 2: Design and Screen */}
-                  {activeTab === "design" && (
-                    <motion.div
-                      key="design"
-                      variants={cardVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                      className="absolute w-full"
-                    >
-                      <TabsContent value="design" className="p-4 m-0 space-y-4">
-                        <CardContent className="pt-6">
-                          <div className="mb-6 text-center">
-                            <CardTitle className="mb-2 text-xl text-gray-800">
-                              Thiết kế & Màn hình
-                            </CardTitle>
-                            <CardDescription>
-                              Chọn kiểu thiết kế và kích thước màn hình mong
-                              muốn
-                            </CardDescription>
-                          </div>
-
-                          <div className="mb-8">
-                            <h3 className="mb-4 text-sm font-medium">
-                              Thiết kế:
-                            </h3>
-                            <motion.div
-                              variants={staggerContainerVariants}
-                              className="grid gap-4 md:grid-cols-3"
-                            >
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() =>
-                                  handleSelection("design", "thin")
-                                }
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`relative flex flex-col items-center gap-3 rounded-lg border-2 p-5 ${
-                                    design === "thin"
-                                      ? "border-indigo-500 bg-indigo-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-indigo-300 hover:bg-indigo-50/50`}
-                                >
-                                  <motion.div
-                                    className="flex items-center justify-center h-12"
-                                    initial="initial"
-                                    animate={
-                                      design === "thin" ? "pulse" : "initial"
-                                    }
-                                    variants={iconPulse}
-                                  >
-                                    <div className="h-1 bg-indigo-800 rounded-full w-36"></div>
-                                  </motion.div>
-                                  <div className="text-lg font-medium">
-                                    Mỏng nhẹ
-                                  </div>
-                                  <p className="text-sm text-center text-gray-500">
-                                    Thiết kế mỏng, nhẹ, dễ mang theo
-                                  </p>
-                                  {design === "thin" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2"
-                                    >
-                                      <div className="p-1 text-white bg-indigo-500 rounded-full">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() =>
-                                  handleSelection("design", "standard")
-                                }
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`relative flex flex-col items-center gap-3 rounded-lg border-2 p-5 ${
-                                    design === "standard"
-                                      ? "border-blue-500 bg-blue-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-blue-300 hover:bg-blue-50/50`}
-                                >
-                                  <motion.div
-                                    className="flex items-center justify-center h-12"
-                                    initial="initial"
-                                    animate={
-                                      design === "standard"
-                                        ? "pulse"
-                                        : "initial"
-                                    }
-                                    variants={iconPulse}
-                                  >
-                                    <div className="h-2 bg-blue-800 rounded-full w-36"></div>
-                                  </motion.div>
-                                  <div className="text-lg font-medium">
-                                    Tiêu chuẩn
-                                  </div>
-                                  <p className="text-sm text-center text-gray-500">
-                                    Thiết kế cân bằng, không quá nặng hay nhẹ
-                                  </p>
-                                  {design === "standard" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2"
-                                    >
-                                      <div className="p-1 text-white bg-blue-500 rounded-full">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() =>
-                                  handleSelection("design", "premium")
-                                }
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`relative flex flex-col items-center gap-3 rounded-lg border-2 p-5 ${
-                                    design === "premium"
-                                      ? "border-purple-500 bg-purple-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-purple-300 hover:bg-purple-50/50`}
-                                >
-                                  <motion.div
-                                    className="flex items-center justify-center h-12"
-                                    initial="initial"
-                                    animate={
-                                      design === "premium" ? "pulse" : "initial"
-                                    }
-                                    variants={iconPulse}
-                                  >
-                                    <Hexagon
-                                      className="text-purple-800"
-                                      size={36}
-                                    />
-                                  </motion.div>
-                                  <div className="text-lg font-medium">
-                                    Cao cấp
-                                  </div>
-                                  <p className="text-sm text-center text-gray-500">
-                                    Chất liệu cao cấp, thiết kế sang trọng
-                                  </p>
-                                  {design === "premium" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2"
-                                    >
-                                      <div className="p-1 text-white bg-purple-500 rounded-full">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-                            </motion.div>
-                          </div>
-
-                          <div>
-                            <h3 className="mb-4 text-sm font-medium">
-                              Kích thước màn hình:
-                            </h3>
-                            <motion.div
-                              variants={staggerContainerVariants}
-                              className="grid gap-4 md:grid-cols-3"
-                            >
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() =>
-                                  handleSelection("screenSize", "small")
-                                }
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`relative flex flex-col items-center gap-3 rounded-lg border-2 p-5 ${
-                                    screenSize === "small"
-                                      ? "border-teal-500 bg-teal-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-teal-300 hover:bg-teal-50/50`}
-                                >
-                                  <motion.div
-                                    className="flex-shrink-0 p-3 text-teal-600 bg-teal-100 rounded-md"
-                                    initial="initial"
-                                    animate={
-                                      screenSize === "small"
-                                        ? "pulse"
-                                        : "initial"
-                                    }
-                                    variants={iconPulse}
-                                  >
-                                    <Monitor className="w-5 h-5" />
-                                  </motion.div>
-                                  <div className="text-lg font-medium">
-                                    Nhỏ gọn
-                                  </div>
-                                  <p className="text-sm text-center text-gray-500">
-                                    10 - 13 inch
-                                  </p>
-                                  {screenSize === "small" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2"
-                                    >
-                                      <div className="p-1 text-white bg-teal-500 rounded-full">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() =>
-                                  handleSelection("screenSize", "medium")
-                                }
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`relative flex flex-col items-center gap-3 rounded-lg border-2 p-5 ${
-                                    screenSize === "medium"
-                                      ? "border-cyan-500 bg-cyan-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-cyan-300 hover:bg-cyan-50/50`}
-                                >
-                                  <motion.div
-                                    className="flex-shrink-0 p-3 rounded-md text-cyan-600 bg-cyan-100"
-                                    initial="initial"
-                                    animate={
-                                      screenSize === "medium"
-                                        ? "pulse"
-                                        : "initial"
-                                    }
-                                    variants={iconPulse}
-                                  >
-                                    <Monitor className="w-6 h-6" />
-                                  </motion.div>
-                                  <div className="text-lg font-medium">
-                                    Trung bình
-                                  </div>
-                                  <p className="text-sm text-center text-gray-500">
-                                    13 - 14.9 inch
-                                  </p>
-                                  {screenSize === "medium" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2"
-                                    >
-                                      <div className="p-1 text-white rounded-full bg-cyan-500">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-
-                              <motion.div
-                                variants={itemVariants}
-                                whileHover={{
-                                  y: -3,
-                                  transition: { duration: 0.2 },
-                                }}
-                                onClick={() =>
-                                  handleSelection("screenSize", "large")
-                                }
-                                className="cursor-pointer"
-                              >
-                                <div
-                                  className={`relative flex flex-col items-center gap-3 rounded-lg border-2 p-5 ${
-                                    screenSize === "large"
-                                      ? "border-blue-500 bg-blue-50/70"
-                                      : "border-gray-200 bg-white"
-                                  } shadow-sm hover:border-blue-300 hover:bg-blue-50/50`}
-                                >
-                                  <motion.div
-                                    className="flex-shrink-0 p-3 text-blue-600 bg-blue-100 rounded-md"
-                                    initial="initial"
-                                    animate={
-                                      screenSize === "large"
-                                        ? "pulse"
-                                        : "initial"
-                                    }
-                                    variants={iconPulse}
-                                  >
-                                    <Monitor className="w-7 h-7" />
-                                  </motion.div>
-                                  <div className="text-lg font-medium">Lớn</div>
-                                  <p className="text-sm text-center text-gray-500">
-                                    15 inch trở lên
-                                  </p>
-                                  {screenSize === "large" && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-2 right-2"
-                                    >
-                                      <div className="p-1 text-white bg-blue-500 rounded-full">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </div>
-                              </motion.div>
-                            </motion.div>
-                          </div>
-                        </CardContent>
-                      </TabsContent>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <CardFooter className="flex justify-between p-4 border-t">
-                {activeTab === "design" ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => setActiveTab("performance")}
-                    className="flex items-center gap-2"
-                  >
-                    <ChevronLeft size={16} />
-                    Quay lại
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(-1)}
-                    className="flex items-center gap-2"
-                  >
-                    <ChevronLeft size={16} />
-                    Quay lại
-                  </Button>
-                )}
-
+            {/* Performance tab content */}
+            <TabsContent value="performance">
+              <AnimatePresence mode="wait">
                 <motion.div
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
+                  key="performance"
+                  variants={staggerContainerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="space-y-6"
                 >
-                  <Button
-                    onClick={handleNext}
-                    disabled={
-                      (activeTab === "performance" &&
-                        (!budget || !performance)) ||
-                      (activeTab === "design" && (!design || !screenSize))
-                    }
-                    className={`flex items-center gap-2 ${
-                      (activeTab === "performance" &&
-                        (!budget || !performance)) ||
-                      (activeTab === "design" && (!design || !screenSize))
-                        ? "opacity-50 cursor-not-allowed bg-gray-400"
-                        : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-                    }`}
-                  >
-                    {activeTab === "design" && validateForm() ? (
-                      <>
-                        Tiếp tục so sánh tiêu chí
-                        <ArrowRight size={16} />
-                      </>
-                    ) : (
-                      <>
-                        Tiếp theo
-                        <ChevronRight size={16} />
-                      </>
-                    )}
-                  </Button>
+                  {/* Budget selection */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium text-gray-800">Ngân sách của bạn</h3>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            budget === "low"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("budget", "low")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 text-indigo-500 bg-indigo-100 rounded-full">
+                              <DollarSign className="w-6 h-6" />
+                            </div>
+                            <CardTitle className="mb-1 text-base">Tiết kiệm</CardTitle>
+                            <CardDescription>5 - 15 triệu</CardDescription>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            budget === "mid"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("budget", "mid")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 text-indigo-500 bg-indigo-100 rounded-full">
+                              <DollarSign className="w-6 h-6" />
+                            </div>
+                            <CardTitle className="mb-1 text-base">Trung bình</CardTitle>
+                            <CardDescription>15 - 25 triệu</CardDescription>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            budget === "high"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("budget", "high")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 text-indigo-500 bg-indigo-100 rounded-full">
+                              <DollarSign className="w-6 h-6" />
+                            </div>
+                            <CardTitle className="mb-1 text-base">Cao cấp</CardTitle>
+                            <CardDescription>25 - 50 triệu</CardDescription>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* Performance selection */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium text-gray-800">Yêu cầu hiệu năng</h3>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            performance === "office"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("performance", "office")}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start space-x-4">
+                              <div className="flex items-center justify-center w-12 h-12 mt-1 text-indigo-500 bg-indigo-100 rounded-full shrink-0">
+                                <Circle className="w-6 h-6" />
+                              </div>
+                              <div className="flex-1">
+                                <CardTitle className="mb-1 text-base">
+                                  Văn phòng cơ bản
+                                </CardTitle>
+                                <CardDescription className="text-sm">
+                                  Phù hợp cho các công việc nhẹ như văn phòng, duyệt web, xem phim
+                                </CardDescription>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            performance === "gaming"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("performance", "gaming")}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start space-x-4">
+                              <div className="flex items-center justify-center w-12 h-12 mt-1 text-indigo-500 bg-indigo-100 rounded-full shrink-0">
+                                <Sparkles className="w-6 h-6" />
+                              </div>
+                              <div className="flex-1">
+                                <CardTitle className="mb-1 text-base">
+                                  Gaming & Đồ họa
+                                </CardTitle>
+                                <CardDescription className="text-sm">
+                                  Phù hợp cho chơi game, đồ họa, thiết kế và xử lý tác vụ nặng
+                                </CardDescription>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </div>
+                  </div>
                 </motion.div>
-              </CardFooter>
-            </Tabs>
-          </Card>
+              </AnimatePresence>
+            </TabsContent>
+
+            {/* Design tab content */}
+            <TabsContent value="design">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key="design"
+                  variants={staggerContainerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="space-y-6"
+                >
+                  {/* Design selection */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium text-gray-800">Thiết kế quan trọng với bạn?</h3>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            design === "thin"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("design", "thin")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 text-indigo-500 bg-indigo-100 rounded-full">
+                              <Hexagon className="w-6 h-6" />
+                            </div>
+                            <CardTitle className="mb-1 text-base">Mỏng nhẹ</CardTitle>
+                            <CardDescription>
+                              Ưu tiên máy mỏng, nhẹ, dễ mang đi
+                            </CardDescription>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            design === "premium"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("design", "premium")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 text-indigo-500 bg-indigo-100 rounded-full">
+                              <Sparkles className="w-6 h-6" />
+                            </div>
+                            <CardTitle className="mb-1 text-base">Cao cấp</CardTitle>
+                            <CardDescription>
+                              Ưu tiên chất liệu cao cấp và thiết kế sang trọng
+                            </CardDescription>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            design === "standard"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("design", "standard")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 text-indigo-500 bg-indigo-100 rounded-full">
+                              <Circle className="w-6 h-6" />
+                            </div>
+                            <CardTitle className="mb-1 text-base">Cân đối</CardTitle>
+                            <CardDescription>
+                              Cân bằng giữa hiệu năng và thiết kế
+                            </CardDescription>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* Screen size selection */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-medium text-gray-800">Kích thước màn hình</h3>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            screenSize === "small"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("screenSize", "small")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 text-indigo-500 bg-indigo-100 rounded-full">
+                              <Monitor className="w-5 h-5" />
+                            </div>
+                            <CardTitle className="mb-1 text-base">Nhỏ gọn</CardTitle>
+                            <CardDescription>10" - 13"</CardDescription>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            screenSize === "medium"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("screenSize", "medium")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 text-indigo-500 bg-indigo-100 rounded-full">
+                              <Monitor className="w-6 h-6" />
+                            </div>
+                            <CardTitle className="mb-1 text-base">Trung bình</CardTitle>
+                            <CardDescription>13" - 14.9"</CardDescription>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      <motion.div variants={cardVariants}>
+                        <Card
+                          className={`cursor-pointer border-2 transition-all ${
+                            screenSize === "large"
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-slate-100 hover:border-indigo-200"
+                          }`}
+                          onClick={() => handleSelection("screenSize", "large")}
+                        >
+                          <CardContent className="p-4 text-center">
+                            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-2 text-indigo-500 bg-indigo-100 rounded-full">
+                              <Monitor className="w-7 h-7" />
+                            </div>
+                            <CardTitle className="mb-1 text-base">Lớn</CardTitle>
+                            <CardDescription>15" - 17"</CardDescription>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </TabsContent>
+          </Tabs>
         </motion.div>
+
+        <CardFooter className="flex justify-between p-4 border-t">
+          {activeTab === "design" ? (
+            <Button
+              variant="outline"
+              onClick={() => setActiveTab("performance")}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft size={16} />
+              Quay lại
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft size={16} />
+              Quay lại
+            </Button>
+          )}
+
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <Button
+              onClick={handleNext}
+              disabled={
+                (activeTab === "performance" &&
+                  (!budget || !performance)) ||
+                (activeTab === "design" && (!design || !screenSize))
+              }
+              className={`flex items-center gap-2 ${
+                (activeTab === "performance" &&
+                  (!budget || !performance)) ||
+                (activeTab === "design" && (!design || !screenSize))
+                  ? "opacity-50 cursor-not-allowed bg-gray-400"
+                  : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+              }`}
+            >
+              {activeTab === "design" && validateForm() ? (
+                <>
+                  Tiếp tục so sánh tiêu chí
+                  <ArrowRight size={16} />
+                </>
+              ) : (
+                <>
+                  Tiếp theo
+                  <ChevronRight size={16} />
+                </>
+              )}
+            </Button>
+          </motion.div>
+        </CardFooter>
       </div>
     </motion.div>
   );

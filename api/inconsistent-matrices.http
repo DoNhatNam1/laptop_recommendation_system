@@ -1,0 +1,220 @@
+### Kiểm tra trạng thái của API
+GET http://localhost:5000/api/status
+
+### Kiểm tra trạng thái migration database
+GET http://localhost:5000/api/migration-status
+
+### =================== NHÓM 1: XỬ LÝ MA TRẬN TIÊU CHÍ VÀ LỌC LAPTOP (CR FAIL) ===================
+
+### Ma trận tiêu chí không nhất quán (Office) - Trả về kết quả trực tiếp
+# @name processCriteriaOfficeInconsistent
+POST http://localhost:5000/api/process-comparisons
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 7 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "1/5" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 9 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": "1/3" },
+    { "row": "Giá", "column": "Màn hình", "value": "1/8" },
+    { "row": "Giá", "column": "Pin", "value": "5/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 6 },
+    { "row": "Màn hình", "column": "Pin", "value": 9 },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "7/2" },
+    { "row": "Màn hình", "column": "Độ bền", "value": 8 },
+    { "row": "Pin", "column": "Thiết kế", "value": "1/6" },
+    { "row": "Pin", "column": "Độ bền", "value": "1/4" },
+    { "row": "Thiết kế", "column": "Độ bền", "value": 5 }
+  ]
+}
+
+### =================== NHÓM 2: ĐÁNH GIÁ LAPTOP VỚI MA TRẬN SO SÁNH KHÔNG NHẤT QUÁN ===================
+
+### Đánh giá laptop với ma trận so sánh không nhất quán - Trả về kết quả trực tiếp
+# @name evaluateLaptopsInconsistent
+POST http://localhost:5000/api/evaluate-laptops
+Content-Type: application/json
+
+{
+  "criteria_weights": {
+    "Hiệu năng": 0.412,
+    "Giá": 0.213,
+    "Màn hình": 0.153,
+    "Pin": 0.099,
+    "Thiết kế": 0.123,
+    "Độ bền": 0.068
+  },
+  "filtered_laptops": [
+    {
+      "id": "dell-xps-013",
+      "name": "Dell XPS 13",
+      "price": 22000000,
+      "cpu": "Intel Core i5-1135G7",
+      "ram": "8GB",
+      "storage": "512GB SSD",
+      "screen_size": 13.3,
+      "battery": "52Wh",
+      "weight": 1.2
+    },
+    {
+      "id": "macbook-air-014",
+      "name": "MacBook Air M1",
+      "price": 24000000,
+      "cpu": "Apple M1",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "screen_size": 13.3,
+      "battery": "49.9Wh",
+      "weight": 1.29
+    },
+    {
+      "id": "lenovo-thinkpad-015",
+      "name": "Lenovo Thinkpad X1 Carbon",
+      "price": 25000000,
+      "cpu": "Intel Core i7-1165G7",
+      "ram": "16GB",
+      "storage": "512GB SSD",
+      "screen_size": 14,
+      "battery": "57Wh",
+      "weight": 1.13
+    }
+  ],
+  "evaluationMethod": "manual",
+  "selectedLaptops": [
+    {
+      "id": "dell-xps-013",
+      "name": "Dell XPS 13"
+    },
+    {
+      "id": "macbook-air-014",
+      "name": "MacBook Air M1" 
+    },
+    {
+      "id": "lenovo-thinkpad-015",
+      "name": "Lenovo Thinkpad X1 Carbon"
+    }
+  ],
+  "laptopComparisons": {
+    "Hiệu năng": [
+      { "row": "Dell XPS 13", "column": "MacBook Air M1", "value": "1/9" },
+      { "row": "Dell XPS 13", "column": "Lenovo Thinkpad X1 Carbon", "value": 5 },
+      { "row": "MacBook Air M1", "column": "Lenovo Thinkpad X1 Carbon", "value": "1/3" }
+    ],
+    "Giá": [
+      { "row": "Dell XPS 13", "column": "MacBook Air M1", "value": 9 },
+      { "row": "Dell XPS 13", "column": "Lenovo Thinkpad X1 Carbon", "value": 8 },
+      { "row": "MacBook Air M1", "column": "Lenovo Thinkpad X1 Carbon", "value": "1/7" }
+    ],
+    "Màn hình": [
+      { "row": "Dell XPS 13", "column": "MacBook Air M1", "value": 7 },
+      { "row": "Dell XPS 13", "column": "Lenovo Thinkpad X1 Carbon", "value": "1/6" },
+      { "row": "MacBook Air M1", "column": "Lenovo Thinkpad X1 Carbon", "value": "1/8" }
+    ],
+    "Thiết kế": [
+      { "row": "Dell XPS 13", "column": "MacBook Air M1", "value": "1/9" },
+      { "row": "Dell XPS 13", "column": "Lenovo Thinkpad X1 Carbon", "value": 6 },
+      { "row": "MacBook Air M1", "column": "Lenovo Thinkpad X1 Carbon", "value": 9 }
+    ],
+    "Pin": [
+      { "row": "Dell XPS 13", "column": "MacBook Air M1", "value": 8 },
+      { "row": "Dell XPS 13", "column": "Lenovo Thinkpad X1 Carbon", "value": "1/4" },
+      { "row": "MacBook Air M1", "column": "Lenovo Thinkpad X1 Carbon", "value": "1/9" }
+    ]
+  }
+}
+
+### Đánh giá laptop với ma trận không nhất quán khác - Trả về kết quả trực tiếp
+# @name evaluateLaptopsInconsistent2
+POST http://localhost:5000/api/evaluate-laptops
+Content-Type: application/json
+
+{
+  "criteria_weights": {
+    "Hiệu năng": 0.353,
+    "Giá": 0.235,
+    "Màn hình": 0.176,
+    "Thiết kế": 0.118,
+    "Pin": 0.118
+  },
+  "filtered_laptops": [
+    {
+      "id": "dell-inspiron-016",
+      "name": "Dell Inspiron 15",
+      "price": 17500000,
+      "cpu": "Intel Core i5-1135G7",
+      "ram": "8GB",
+      "storage": "512GB SSD",
+      "screen_size": 15.6,
+      "battery": "42Wh",
+      "weight": 1.7
+    },
+    {
+      "id": "hp-envy-017",
+      "name": "HP Envy 13",
+      "price": 19800000,
+      "cpu": "Intel Core i7-1165G7",
+      "ram": "16GB",
+      "storage": "512GB SSD",
+      "screen_size": 13.3,
+      "battery": "51Wh",
+      "weight": 1.3
+    },
+    {
+      "id": "asus-zenbook-018",
+      "name": "Asus ZenBook 14",
+      "price": 21500000,
+      "cpu": "AMD Ryzen 7 5700U",
+      "ram": "16GB",
+      "storage": "1TB SSD",
+      "screen_size": 14,
+      "battery": "63Wh",
+      "weight": 1.19
+    },
+    {
+      "id": "acer-swift-019",
+      "name": "Acer Swift 5",
+      "price": 23500000,
+      "cpu": "Intel Core i7-1165G7",
+      "ram": "16GB",
+      "storage": "1TB SSD",
+      "screen_size": 14,
+      "battery": "56Wh",
+      "weight": 1.05
+    }
+  ],
+  "evaluationMethod": "manual",
+  "selectedLaptops": [
+    {"id": "dell-inspiron-016", "name": "Dell Inspiron 15"},
+    {"id": "hp-envy-017", "name": "HP Envy 13"},
+    {"id": "asus-zenbook-018", "name": "Asus ZenBook 14"},
+    {"id": "acer-swift-019", "name": "Acer Swift 5"}
+  ],
+  "laptopComparisons": {
+    "Hiệu năng": [
+      { "row": "Dell Inspiron 15", "column": "HP Envy 13", "value": "1/3" },
+      { "row": "Dell Inspiron 15", "column": "Asus ZenBook 14", "value": "1/5" },
+      { "row": "Dell Inspiron 15", "column": "Acer Swift 5", "value": "1/6" },
+      { "row": "HP Envy 13", "column": "Asus ZenBook 14", "value": 3 },
+      { "row": "HP Envy 13", "column": "Acer Swift 5", "value": "1/4" },
+      { "row": "Asus ZenBook 14", "column": "Acer Swift 5", "value": 7 }
+    ],
+    "Giá": [
+      { "row": "Dell Inspiron 15", "column": "HP Envy 13", "value": 4 },
+      { "row": "Dell Inspiron 15", "column": "Asus ZenBook 14", "value": 5 },
+      { "row": "Dell Inspiron 15", "column": "Acer Swift 5", "value": 7 },
+      { "row": "HP Envy 13", "column": "Asus ZenBook 14", "value": "1/3" },
+      { "row": "HP Envy 13", "column": "Acer Swift 5", "value": 2 },
+      { "row": "Asus ZenBook 14", "column": "Acer Swift 5", "value": 3 }
+    ]
+  }
+}

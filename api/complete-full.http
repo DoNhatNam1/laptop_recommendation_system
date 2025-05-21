@@ -1,6 +1,14 @@
-### Execute the process-comparisons API and capture the response
-# @name processComparisons
-POST http://0.0.0.0:5000/api/process-comparisons
+### Kiểm tra trạng thái của API
+GET http://localhost:5000/api/status
+
+### Kiểm tra trạng thái migration database
+GET http://localhost:5000/api/migration-status
+
+### =================== NHÓM 1: XỬ LÝ MA TRẬN TIÊU CHÍ VÀ LỌC LAPTOP ===================
+
+### Xử lý ma trận tiêu chí (Văn phòng) - Trả về kết quả trực tiếp
+# @name processCriteriaOffice
+POST http://localhost:5000/api/process-comparisons
 Content-Type: application/json
 
 {
@@ -30,53 +38,263 @@ Content-Type: application/json
   ]
 }
 
-### Execute the process-comparisons API and capture the response CR > 0.1
-# @name processComparisons
-POST http://0.0.0.0:5000/api/process-comparisons
+### =================== NHÓM 2: ĐÁNH GIÁ LAPTOP VÀ XẾP HẠNG ===================
+
+### Đánh giá laptop (Office - Tự động đánh giá tất cả laptop) - Trả về kết quả trực tiếp
+# @name evaluateLaptopsOfficeAuto
+POST http://localhost:5000/api/evaluate-laptops
 Content-Type: application/json
 
 {
-  "usage": "office",
-  "fromBudget": 15000000,
-  "toBudget": 25000000,
-  "performance": "smooth",
-  "design": "lightweight",
-  "fromScreenSize": 13,
-  "toScreenSize": 14.9,
-  "comparisons": [
-    { "row": "Hiệu năng", "column": "Giá", "value": 5 },         
-    { "row": "Giá", "column": "Màn hình", "value": 4 },          
-    { "row": "Màn hình", "column": "Hiệu năng", "value": 3 },    
-    { "row": "Hiệu năng", "column": "Pin", "value": 7 },        
-    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
-    { "row": "Hiệu năng", "column": "Độ bền", "value": "7/2" },
-    { "row": "Giá", "column": "Pin", "value": "5/2" },
-    { "row": "Giá", "column": "Thiết kế", "value": 3 },
-    { "row": "Giá", "column": "Độ bền", "value": 10 },            
-    { "row": "Màn hình", "column": "Pin", "value": "9/5" },
-    { "row": "Màn hình", "column": "Thiết kế", "value": "11/5" },
-    { "row": "Màn hình", "column": "Độ bền", "value": "5/2" },
-    { "row": "Pin", "column": "Độ bền", "value": "3/2" },     
-    { "row": "Pin", "column": "Thiết kế", "value": "27/10" },
-    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
-  ]
+  "criteria_weights": {
+    "Hiệu năng": 0.346,
+    "Giá": 0.213,
+    "Màn hình": 0.164,
+    "Pin": 0.134,
+    "Thiết kế": 0.075,
+    "Độ bền": 0.068
+  },
+  "filtered_laptops": [
+    {
+      "id": "lenovo-ideapad-003",
+      "name": "Lenovo IdeaPad 5",
+      "price": 15800000,
+      "cpu": "AMD Ryzen 5 7535U",
+      "ram": "16GB DDR4",
+      "storage": "512GB SSD",
+      "screen_size": 14.0,
+      "screen": "14.0",
+      "screen_name": "14\" FHD IPS",
+      "battery": "32000mAh",
+      "weight": 1.38,
+      "gpu": "AMD Radeon Graphics",
+      "performance": "smooth",
+      "design": "lightweight",
+      "usage": "office"
+    },
+    {
+      "id": "asus-vivobook-004",
+      "name": "Asus VivoBook 14 OLED",
+      "price": 17500000,
+      "cpu": "Intel Core i5-1240P",
+      "ram": "16GB DDR4",
+      "storage": "512GB SSD",
+      "screen_size": 14.0,
+      "screen": "14.0",
+      "screen_name": "14.0\" FHD OLED",
+      "battery": "28000mAh",
+      "weight": 1.4,
+      "gpu": "Intel Iris Xe Graphics",
+      "performance": "smooth",
+      "design": "lightweight",
+      "usage": "office"
+    },
+    {
+      "id": "dell-inspiron-005",
+      "name": "Dell Inspiron 14",
+      "price": 18900000,
+      "cpu": "Intel Core i5-1245U",
+      "ram": "16GB DDR5",
+      "storage": "512GB SSD",
+      "screen_size": 14.0,
+      "screen": "14.0",
+      "screen_name": "14\" FHD+ 16:10",
+      "battery": "35000mAh",
+      "weight": 1.55,
+      "gpu": "Intel Iris Xe Graphics",
+      "performance": "smooth",
+      "design": "lightweight",
+      "usage": "office"
+    },
+    {
+      "id": "acer-swift-006",
+      "name": "Acer Swift 3",
+      "price": 20500000,
+      "cpu": "AMD Ryzen 5 7640U",
+      "ram": "16GB LPDDR5",
+      "storage": "512GB SSD",
+      "screen_size": 14.0,
+      "screen": "14.0",
+      "screen_name": "14\" QHD IPS",
+      "battery": "47000mAh",
+      "weight": 1.25,
+      "gpu": "AMD Radeon Graphics",
+      "performance": "smooth",
+      "design": "lightweight",
+      "usage": "office"
+    },
+    {
+      "id": "lenovo-yoga-008",
+      "name": "Lenovo Yoga Slim 6",
+      "price": 24000000,
+      "cpu": "AMD Ryzen 7 7735U",
+      "ram": "16GB LPDDR5",
+      "storage": "1TB SSD",
+      "screen_size": 14.0,
+      "screen": "14.0",
+      "screen_name": "14\" 2.8K OLED",
+      "battery": "52000mAh",
+      "weight": 1.35,
+      "gpu": "AMD Radeon Graphics",
+      "performance": "smooth",
+      "design": "lightweight",
+      "usage": "office"
+    }
+  ],
+  "evaluationMethod": "auto"
 }
 
+### Đánh giá laptop (Manual - so sánh cặp thủ công) - Trả về kết quả trực tiếp
+# @name evaluateLaptopsManual
+POST http://localhost:5000/api/evaluate-laptops
+Content-Type: application/json
 
-### Lấy taskId từ kết quả của request trước
-@taskId = {{processComparisons.response.body.$.taskId}}
+{
+  "criteria_weights": {
+    "Hiệu năng": 0.346,
+    "Giá": 0.213,
+    "Màn hình": 0.164,
+    "Pin": 0.134,
+    "Thiết kế": 0.075,
+    "Độ bền": 0.068
+  },
+  "filtered_laptops": [
+    {
+      "id": "lenovo-ideapad-003",
+      "name": "Lenovo IdeaPad 5",
+      "price": 15800000,
+      "cpu": "AMD Ryzen 5 7535U",
+      "ram": "16GB DDR4",
+      "storage": "512GB SSD",
+      "screen_size": 14.0,
+      "battery": "32000mAh",
+      "weight": 1.38
+    },
+    {
+      "id": "asus-vivobook-004",
+      "name": "Asus VivoBook 14 OLED",
+      "price": 17500000,
+      "cpu": "Intel Core i5-1240P",
+      "ram": "16GB DDR4",
+      "storage": "512GB SSD",
+      "screen_size": 14.0,
+      "battery": "28000mAh",
+      "weight": 1.4
+    },
+    {
+      "id": "dell-inspiron-005",
+      "name": "Dell Inspiron 14",
+      "price": 18900000,
+      "cpu": "Intel Core i5-1245U",
+      "ram": "16GB DDR5",
+      "storage": "512GB SSD",
+      "screen_size": 14.0,
+      "battery": "35000mAh",
+      "weight": 1.55
+    }
+  ],
+  "evaluationMethod": "manual",
+  "selectedLaptops": [
+    {
+      "id": "lenovo-ideapad-003",
+      "name": "Lenovo IdeaPad 5"
+    },
+    {
+      "id": "asus-vivobook-004",
+      "name": "Asus VivoBook 14 OLED" 
+    },
+    {
+      "id": "dell-inspiron-005",
+      "name": "Dell Inspiron 14"
+    }
+  ],
+  "laptopComparisons": {
+    "Hiệu năng": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": 1 },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": "1/2" },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": "1/2" }
+    ],
+    "Giá": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": 2 },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": 3 },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": "3/2" }
+    ],
+    "Màn hình": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": "1/2" },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": 1 },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": 2 }
+    ],
+    "Thiết kế": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": 1 },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": "1/2" },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": "1/2" }
+    ],
+    "Pin": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": 2 },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": "1/2" },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": "1/4" }
+    ],
+    "Độ bền": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": 1 },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": "1/2" },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": "1/2" }
+    ]
+  }
+}
 
-### API kiểm tra tiến độ xử lý
-GET http://localhost:5000/api/processing-status/{{taskId}}
+### Đánh giá laptop (Gaming) - Trả về kết quả trực tiếp
+# @name evaluateLaptopsGaming
+POST http://localhost:5000/api/evaluate-laptops
+Content-Type: application/json
 
-### API lấy kết quả xử lý (khi đã hoàn thành)
-GET http://localhost:5000/api/processing-result/{{taskId}}
+{
+  "criteria_weights": {
+    "Hiệu năng": 0.623,
+    "Giá": 0.089,
+    "Màn hình": 0.142,
+    "Thiết kế": 0.073,
+    "Pin": 0.045,
+    "Độ bền": 0.028
+  },
+  "filtered_laptops": [
+    {
+      "id": 253,
+      "name": "Asus ROG Strix G15",
+      "price": 32000000,
+      "cpu": "AMD Ryzen 9 5900HX",
+      "ram": "16GB",
+      "storage": "1TB SSD",
+      "screen_size": 15.6,
+      "battery": "90Wh",
+      "weight": 2.3
+    },
+    {
+      "id": 254,
+      "name": "MSI GE76 Raider",
+      "price": 38000000,
+      "cpu": "Intel Core i7-11800H",
+      "ram": "32GB",
+      "storage": "1TB SSD",
+      "screen_size": 17.3,
+      "battery": "99.9Wh",
+      "weight": 2.9
+    },
+    {
+      "id": 255,
+      "name": "Alienware m15 R6",
+      "price": 36500000,
+      "cpu": "Intel Core i9-11900H",
+      "ram": "32GB",
+      "storage": "1TB SSD",
+      "screen_size": 15.6,
+      "battery": "86Wh",
+      "weight": 2.5
+    }
+  ],
+  "evaluationMethod": "auto"
+}
 
-### API lấy danh sách laptop theo nhu cầu sử dụng
-GET http://localhost:5000/api/laptops-by-usage
+### =================== API PHỤ TRỢ ===================
 
-### API kiểm tra database migration status
-GET http://localhost:5000/api/migration-status
-
-### API kiểm tra trạng thái của server
-GET http://localhost:5000/api/status
+### Lấy danh sách laptop theo mục đích sử dụng
+GET http://localhost:5000/api/laptops-by-usage?usage=office&fromBudget=15000000&toBudget=20000000&performance=smooth&design=lightweight&fromScreenSize=13&toScreenSize=15

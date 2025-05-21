@@ -1,0 +1,4 @@
+backend nếu chọn để mặc đinh các laptop lọc đó và để hệ thống tự động làm ra ma trận thì folder 
+STEP_2 sẽ từ stage1 --> stage2 (tự động tạo ma trận từ stage1) --> stage3 như bth 
+còn nếu chọn ngược lại thì sẽ 
+stage1 --> trả về laptop client --> stage2 sẽ tạo ma trận đối cho từng tiêu chí --> stage3

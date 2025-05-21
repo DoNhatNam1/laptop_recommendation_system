@@ -1,0 +1,73 @@
+@startuml Laptop Recommendation System Sequence
+
+actor User
+participant "Frontend" as FE
+participant "Backend API" as API
+participant "Stage1\n(Lọc Laptop)" as Stage1
+participant "Stage2\n(Tạo Ma Trận)" as Stage2
+participant "Stage3-8\n(Tính Toán AHP)" as Stage3
+database "Database" as DB
+
+title Sequence Diagram - Hệ Thống Đánh Giá Laptop
+
+== Khởi tạo và lọc laptop (Chung cho cả 2 luồng) ==
+
+User -> FE: Nhập tiêu chí lọc\n(ngân sách, nhu cầu, v.v.)
+FE -> API: POST /api/filter-laptops\n(tiêu chí lọc)
+API -> Stage1: Xử lý lọc laptop
+Stage1 -> DB: Truy vấn dữ liệu laptop
+DB --> Stage1: Dữ liệu laptop
+Stage1 --> API: Danh sách laptop đã lọc
+API --> FE: Trả về danh sách laptop phù hợp
+FE --> User: Hiển thị danh sách laptop
+
+== Luồng 1: Đánh giá Tự động ==
+
+User -> FE: Chọn chế độ "Tự động"
+User -> FE: Chọn laptop muốn so sánh
+User -> FE: Nhấn "Tiếp tục đánh giá"
+FE -> API: POST /api/process-comparisons\n(evaluationMethod: "auto")
+API -> Stage1: Xác nhận danh sách laptop
+Stage1 --> API: Danh sách laptop đã chọn
+API -> Stage2: Tự động tạo ma trận so sánh
+Stage2 --> API: Ma trận so sánh
+API -> Stage3: Xử lý tính toán AHP
+Stage3 --> API: Kết quả xếp hạng
+API --> FE: Trả về kết quả đánh giá
+FE --> User: Hiển thị kết quả xếp hạng
+
+== Luồng 2: Đánh giá Thủ công ==
+
+User -> FE: Chọn chế độ "Thủ công"
+User -> FE: Chọn laptop muốn so sánh
+User -> FE: Nhấn "Tiếp tục đánh giá"
+FE --> User: Hiển thị giao diện đánh giá từng cặp
+loop Cho mỗi tiêu chí
+    loop Cho mỗi cặp laptop
+        User -> FE: Đánh giá cặp laptop (1-9)
+        FE -> FE: Cập nhật ma trận so sánh
+    end
+end
+User -> FE: Nhấn "Xem kết quả xếp hạng"
+FE -> API: POST /api/process-manual-ratings\n(evaluationMethod: "manual", laptopComparisons: {...})
+API -> Stage1: Xác nhận danh sách laptop
+Stage1 --> API: Danh sách laptop đã chọn
+API -> Stage2: Tạo ma trận từ đánh giá người dùng\n(bổ sung giá trị đối xứng)
+Stage2 --> API: Ma trận so sánh hoàn chỉnh
+API -> Stage3: Xử lý tính toán AHP
+Stage3 --> API: Kết quả xếp hạng
+API --> FE: Trả về kết quả đánh giá
+FE --> User: Hiển thị kết quả xếp hạng
+
+== Xử lý lỗi và kiểm tra tính nhất quán ==
+
+alt Ma trận không nhất quán (CR > 0.1)
+    Stage2 -> API: Báo lỗi không nhất quán (CR > 0.1)
+    API --> FE: Trả về thông báo lỗi
+    FE --> User: Hiển thị thông báo yêu cầu đánh giá lại
+else Lỗi xử lý
+    API --> FE: Trả về thông báo lỗi
+    FE --> User: Hiển thị thông báo lỗi
+end
+
+@enduml

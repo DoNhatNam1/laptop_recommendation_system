@@ -1,90 +1,96 @@
-from .stage1 import get_comparison_matrix
-from .stage3 import process_user_request_stage3
-from .utils import calculate_criteria_weights, calculate_consistency_ratio
+from typing import Dict, Any, List
+import traceback
 
-def process_user_request_stage4(user_data):
-    """Stage 4 - Tính trọng số tiêu chí"""
-    # Tái sử dụng kết quả từ stage3
-    stage3_result = process_user_request_stage3(user_data)
+def calculate_criteria_weights(normalized_matrix: List[List[float]]) -> List[float]:
+    """
+    Tính trọng số các tiêu chí từ ma trận đã chuẩn hóa
     
-    if "error" in stage3_result:
-        return stage3_result
+    Parameters:
+    - normalized_matrix: Ma trận đã chuẩn hóa
     
-    # Lấy ma trận từ stage1 hoặc tính toán lại nếu cần
-    matrix, criteria_order = get_comparison_matrix(user_data)
+    Returns:
+    - Danh sách trọng số các tiêu chí
+    """
+    if not normalized_matrix or len(normalized_matrix) == 0:
+        return []
     
-    # Xử lý đặc biệt cho ma trận 1x1 hoặc 2x2
-    n = len(matrix)
-    if n <= 2:
-        weights = [1/n] * n
+    n = len(normalized_matrix)
+    weights = [0.0] * n
+    
+    # Tính trung bình các hàng
+    for i in range(n):
+        row_sum = sum(normalized_matrix[i])
+        weights[i] = row_sum / n
+    
+    return weights
+
+def calculate_weights(stage3_result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Stage 4 - Tính trọng số các tiêu chí
+    
+    Parameters:
+    - stage3_result: Kết quả từ Stage 3 chứa ma trận đã chuẩn hóa
+    
+    Returns:
+    - Dictionary chứa trọng số các tiêu chí
+    """
+    try:
+        # Kiểm tra đầu vào
+        if "status" in stage3_result and stage3_result["status"] == "error":
+            return stage3_result
+        
+        normalized_matrix = stage3_result.get("normalized_matrix")
+        criteria_order = stage3_result.get("criteria_order")
+        
+        if normalized_matrix is None or criteria_order is None:
+            return {
+                "status": "error",
+                "message": "Không tìm thấy ma trận chuẩn hóa hoặc danh sách tiêu chí từ Stage 3"
+            }
+        
+        # Tính trọng số
+        weights = calculate_criteria_weights(normalized_matrix)
+        
+        # Xử lý đặc biệt cho ma trận kích thước nhỏ (1x1 hoặc 2x2)
+        n = len(normalized_matrix)
+        if n <= 2:
+            weights = [1/n] * n
+        
+        # Định dạng trọng số
         criteria_weights = []
         for i, criterion in enumerate(criteria_order):
-            criteria_weights.append({
-                "criterion": criterion,
-                "weight": round(weights[i], 3),
-                "percentage": round(weights[i] * 100, 1)
-            })
+            if i < len(weights):
+                criteria_weights.append({
+                    "criterion": criterion,
+                    "weight": round(weights[i], 3),
+                    "percentage": round(weights[i] * 100, 1)
+                })
         
-        # Kết hợp kết quả từ stage3 và thêm kết quả mới cho ma trận nhỏ
+        # Sắp xếp trọng số theo thứ tự giảm dần
+        criteria_weights.sort(key=lambda x: x["weight"], reverse=True)
+        
+        # Kết hợp kết quả
         result = {
             "status": "success",
             "stage": "stage4",
-            "matrix": stage3_result["matrix"],  # Tái sử dụng từ stage3
-            "column_sums": stage3_result["column_sums"],  # Tái sử dụng từ stage3
-            "normalized_matrix": stage3_result["normalized_matrix"],  # Tái sử dụng từ stage3
-            "weights": {
-                "values": weights,
-                "formatted": criteria_weights
-            },
-            "message": "Các tiêu chí có trọng số bằng nhau khi số tiêu chí ≤ 2.",
-            "validation": stage3_result.get("validation", {})  # Tái sử dụng từ stage3 nếu có
+            "matrix": stage3_result.get("matrix"),
+            "matrix_data": stage3_result.get("matrix_data", []),
+            "criteria_order": criteria_order,
+            "criteria_count": n,
+            "column_sums": stage3_result.get("column_sums", []),
+            "normalized_matrix": normalized_matrix,
+            "normalized_matrix_data": stage3_result.get("normalized_matrix_data", []),
+            "weights": weights,
+            "weights_formatted": criteria_weights,
+            "validation": stage3_result.get("validation", {})
         }
         
         return result
-    
-    # Tính trọng số từ ma trận chuẩn hóa
-    normalized_matrix = []
-    for row in stage3_result["normalized_matrix"]:
-        normalized_matrix.append([float(val) for val in row])
-    
-    weights = calculate_criteria_weights(normalized_matrix)
-    
-    # Kiểm tra nhất quán nhanh
-    cr = calculate_consistency_ratio(matrix)
-    is_consistent = cr < 0.1
-    
-    # Tạo warning nếu ma trận không nhất quán
-    warning = None
-    if not is_consistent:
-        warning = f"Ma trận không nhất quán (CR = {cr:.3f} > 0.1), kết quả có thể không tin cậy."
-    
-    # Format trọng số
-    criteria_weights = []
-    for i, criterion in enumerate(criteria_order):
-        if i < len(weights):
-            criteria_weights.append({
-                "criterion": criterion,
-                "weight": round(weights[i], 3),
-                "percentage": round(weights[i] * 100, 1)
-            })
-    
-    # Kết hợp kết quả từ stage3 và thêm kết quả mới
-    result = {
-        "status": "success",
-        "stage": "stage4",
-        "matrix": stage3_result["matrix"],  # Tái sử dụng từ stage3
-        "column_sums": stage3_result["column_sums"],  # Tái sử dụng từ stage3
-        "normalized_matrix": stage3_result["normalized_matrix"],  # Tái sử dụng từ stage3
-        "weights": {
-            "values": [round(val, 3) for val in weights],
-            "formatted": criteria_weights
-        },
-        "consistency_check": {
-            "cr": round(cr, 3),
-            "is_consistent": is_consistent,
-            "warning": warning
-        },
-        "validation": stage3_result.get("validation", {})  # Tái sử dụng từ stage3 nếu có
-    }
-    
-    return result
+        
+    except Exception as e:
+        print(f"ERROR stage4 - {str(e)}")
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": f"Lỗi khi tính trọng số: {str(e)}"
+        }

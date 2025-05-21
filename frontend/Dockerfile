@@ -1,5 +1,5 @@
 # Stage 1: Build React application
-FROM node:20-alpine as build
+FROM node:22-alpine as build
 
 # Thiết lập thư mục làm việc
 WORKDIR /app
@@ -34,7 +34,7 @@ RUN npm run build
 RUN echo "Build files:" && ls -la dist
 
 # Stage 2: Nginx server
-FROM nginx:1.25-alpine
+FROM nginx:1.28-alpine
 
 # Tạo thư mục và đặt quyền
 RUN mkdir -p /usr/share/nginx/html && \

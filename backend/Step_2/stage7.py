@@ -1,85 +1,197 @@
 from typing import Dict, Any
+import numpy as np
 import traceback
 
-def calculate_consistency_vectors(stage6_result: Dict[str, Any], original_matrices: Dict[str, Any]) -> Dict[str, Any]:
+def log_matrix(stage_name, matrix_name, matrix_data):
+    """Log ma trận với định dạng dễ đọc"""
+    print(f"\n[{stage_name}] Ma trận {matrix_name}:")
+    
+    if isinstance(matrix_data, np.ndarray):
+        for row in matrix_data:
+            print(f"  {row}")
+    elif isinstance(matrix_data, list):
+        for row in matrix_data:
+            print(f"  {row}")
+    else:
+        print(f"  Không phải ma trận: {type(matrix_data)}")
+        try:
+            print(f"  Giá trị: {matrix_data}")
+        except:
+            print("  Không thể in giá trị")
+
+def log_input_output(stage_name, input_data, output_data=None):
+    """Log input và output của stage"""
+    print(f"\n{'='*20} {stage_name} LOG {'='*20}")
+    
+    # Log keys của input
+    print(f"[{stage_name}] INPUT KEYS: {list(input_data.keys() if isinstance(input_data, dict) else [])}")
+    
+    # Log cấu trúc matrices nếu có
+    if isinstance(input_data, dict):
+        if "matrices" in input_data:
+            print(f"[{stage_name}] INPUT matrices KEYS: {list(input_data['matrices'].keys())}")
+            for matrix_key, matrix_data in input_data["matrices"].items():
+                if isinstance(matrix_data, dict) and "matrix" in matrix_data:
+                    print(f"[{stage_name}] matrices[{matrix_key}] là dict có key 'matrix'")
+                else:
+                    print(f"[{stage_name}] matrices[{matrix_key}] type: {type(matrix_data)}")
+                    
+        # Log original_matrices
+        if "original_matrices" in input_data:
+            print(f"[{stage_name}] INPUT original_matrices KEYS: {list(input_data['original_matrices'].keys())}")
+            for matrix_key, matrix_data in input_data["original_matrices"].items():
+                print(f"[{stage_name}] original_matrices[{matrix_key}] type: {type(matrix_data)}")
+                if isinstance(matrix_data, np.ndarray):
+                    print(f"[{stage_name}] original_matrices[{matrix_key}] shape: {matrix_data.shape}")
+    
+    # Log output keys nếu có
+    if output_data:
+        print(f"\n[{stage_name}] OUTPUT KEYS: {list(output_data.keys() if isinstance(output_data, dict) else [])}")
+        
+    print(f"{'='*20} END {stage_name} LOG {'='*20}\n")
+
+def check_consistency_ratio(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Tính vector nhất quán bằng cách nhân ma trận ban đầu với vector ưu tiên
+    Kiểm tra tính nhất quán của các ma trận so sánh tiêu chí
     
-    Parameters:
-    - stage6_result: Kết quả từ Stage 6 (tổng hợp ưu tiên)
-    - original_matrices: Ma trận so sánh ban đầu từ Stage 2
-    
+    Args:
+        input_data: Results from stage6 with lambda max values
+        
     Returns:
-    - Dictionary chứa vector nhất quán cho từng tiêu chí
+        Dictionary containing consistency analysis or error if not consistent
     """
     try:
-        # Khởi tạo kết quả
-        result = {
-            "status": "success",
-            "consistency_vectors": {},
-            "laptop_details": stage6_result.get("laptop_details", {}),
-            "step1_weights": stage6_result.get("step1_weights", {}),
-            "ranked_laptops": []
+        print("\n=== STAGE 7: CONSISTENCY RATIO CHECK ===")
+        
+        # Extract data from stage6
+        lambda_max_values = input_data.get("lambda_max", {})
+        laptop_names = input_data.get("laptop_names", [])
+        criteria_weights = input_data.get("criteria_weights", {})
+        priority_vectors = input_data.get("priority_vectors", {})
+        laptop_count = len(laptop_names)
+        
+        # Check required data
+        if not lambda_max_values:
+            print("ERROR: Missing lambda max values from previous stage")
+            return {
+                "status": "error",
+                "message": "Không nhận được giá trị lambda max từ giai đoạn trước"
+            }
+        
+        # Random Index (RI) for different matrix sizes
+        random_index = {
+            1: 0.0, 2: 0.0, 3: 0.58, 4: 0.9, 5: 1.12,
+            6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49,
+            11: 1.51, 12: 1.48, 13: 1.56, 14: 1.57, 15: 1.59
         }
         
-        # Lấy dữ liệu từ Stage 6
-        synthesized_scores = stage6_result.get("synthesized_scores", {})
-        laptop_details = stage6_result.get("laptop_details", {})
+        # Initialize results
+        cr_values = {}
+        ci_values = {}
+        consistency_status = {}
+        inconsistent_criteria = []
         
-        if not synthesized_scores:
-            return {"status": "error", "message": "Không tìm thấy điểm tổng hợp từ Stage 6"}
+        # Consistency threshold and numerical tolerance
+        CR_THRESHOLD = 0.1
+        EPSILON = 1e-10  # Small value for floating-point comparisons
         
-        # Lấy ma trận ban đầu
-        original_matrices_data = original_matrices.get("step2_stage2", {}).get("matrices", {})
-        if not original_matrices_data:
-            original_matrices_data = original_matrices.get("matrices", {})
+        # Log input summary
+        print(f"Checking consistency for {len(lambda_max_values)} criteria matrices")
+        print(f"Number of laptops: {laptop_count}")
+        
+        # Check consistency for each criterion
+        for criterion, lambda_max in lambda_max_values.items():
+            print(f"\nChecking consistency for criterion: {criterion}")
             
-        if not original_matrices_data:
-            return {"status": "error", "message": "Không tìm thấy ma trận ban đầu từ Stage 2"}
-        
-        # Tính vector nhất quán cho từng tiêu chí
-        # Đây là bước quan trọng trong AHP để kiểm tra tính nhất quán
-        # Aw = λw
-        
-        # Tạo một dict ánh xạ tên laptop sang id
-        laptop_name_to_id = {}
-        for laptop_id, details in laptop_details.items():
-            laptop_name_to_id[details.get("name", "")] = laptop_id
+            # Get matrix size (n)
+            n = laptop_count
             
-        # Xếp hạng dựa trên điểm tổng hợp
-        ranked_laptops = []
-        for laptop_name, data in sorted(synthesized_scores.items(), key=lambda x: x[1]["total_score"], reverse=True):
-            laptop_id = None
-            for id, details in laptop_details.items():
-                if details.get("name", "") == laptop_name:
-                    laptop_id = id
-                    break
-                    
-            ranked_laptop = {
-                "name": laptop_name,
-                "id": laptop_id,
-                "rank": len(ranked_laptops) + 1,
-                "total_score": data["total_score"],
-                "criteria_scores": data.get("criteria_scores", {})
+            # Handle numerical precision - if lambda_max is very close to n, consider it equal
+            if abs(lambda_max - n) < EPSILON:
+                lambda_max = float(n)  # Avoid tiny negative values
+            
+            # Calculate Consistency Index (CI)
+            ci = (lambda_max - n) / (n - 1) if n > 1 else 0
+            
+            # Fix CI for numerical precision
+            if abs(ci) < EPSILON:
+                ci = 0.0
+            
+            # Get Random Index (RI)
+            ri = random_index.get(n, 1.60)  # Default 1.60 for n > 15
+            
+            # Calculate Consistency Ratio (CR)
+            cr = ci / ri if ri != 0 else 0
+            
+            # Fix CR for numerical precision
+            if abs(cr) < EPSILON:
+                cr = 0.0
+            
+            # Store results
+            ci_values[criterion] = round(ci, 6)
+            cr_values[criterion] = round(cr, 6)
+            
+            # Check consistency
+            if cr < -EPSILON or cr > CR_THRESHOLD:  # Use epsilon for negative check
+                consistency_status[criterion] = False
+                inconsistent_criteria.append(criterion)
+                print(f"WARNING: Matrix for {criterion} is NOT consistent: CR = {cr:.6f} {'< 0' if cr < 0 else '> 0.1'}")
+            else:
+                consistency_status[criterion] = True
+                print(f"Matrix for {criterion} is consistent: CR = {cr:.6f} <= 0.1")
+                
+            # Log details
+            print(f"  Lambda Max: {lambda_max:.6f}")
+            print(f"  n: {n}")
+            print(f"  CI: {ci:.6f}")
+            print(f"  RI: {ri:.4f}")
+            print(f"  CR: {cr:.6f}")
+        
+        # Prepare result based on consistency check
+        if inconsistent_criteria:
+            # Create error message with detailed inconsistency information
+            error_message = f"Phát hiện {len(inconsistent_criteria)} tiêu chí không nhất quán: {', '.join(inconsistent_criteria)}. " + \
+                           "Vui lòng điều chỉnh lại ma trận so sánh cho các tiêu chí này."
+            
+            print("\nCONSISTENCY CHECK FAILED:")
+            print(error_message)
+            
+            return {
+                "status": "error",
+                "message": error_message,
+                "cr_values": cr_values,
+                "ci_values": ci_values,
+                "inconsistent_criteria": inconsistent_criteria,
+                "consistency_status": consistency_status,
+                "stage": "stage7"
             }
-            ranked_laptops.append(ranked_laptop)
-        
-        result["ranked_laptops"] = ranked_laptops
-        
-        # Truyền dữ liệu từ các stage trước
-        result["step3_data"] = stage6_result.get("step3_data", {})
-        result["step4_data"] = stage6_result.get("step4_data", {})
-        result["step5_data"] = stage6_result.get("step5_data", {})
-        result["step6_data"] = stage6_result.get("step6_data", {})
-        result["synthesized_scores"] = synthesized_scores
-        result["filtered_laptops_count"] = len(synthesized_scores)
-        
-        return result
+        else:
+            print("\nCONSISTENCY CHECK PASSED: All matrices are consistent")
+            
+            # Create full result with data from previous stages
+            result = {
+                "status": "success",
+                "stage": "stage7",
+                "message": "Tất cả ma trận đánh giá đều có tính nhất quán tốt",
+                "cr_values": cr_values,
+                "ci_values": ci_values,
+                "consistency_status": consistency_status,
+                "priority_vectors": priority_vectors,
+                "lambda_max": lambda_max_values,
+                "normalized_matrices": input_data.get("normalized_matrices", {}),
+                "original_matrices": input_data.get("original_matrices", {}),
+                "column_sums": input_data.get("column_sums", {}),
+                "matrices": input_data.get("matrices", {}),
+                "laptop_names": laptop_names,
+                "laptop_ids": input_data.get("laptop_ids", []),
+                "laptops": input_data.get("laptops", []),
+                "laptop_details": input_data.get("laptop_details", {}),
+                "criteria_weights": criteria_weights
+            }
+            
+            return result
         
     except Exception as e:
-        print(f"Lỗi Stage 7: {str(e)}")
-        return {
-            "status": "error", 
-            "message": f"Lỗi khi tính vector nhất quán: {str(e)}", 
-            "traceback": traceback.format_exc()
-        }
+        print(f"Stage 7 Exception: {str(e)}")
+        traceback.print_exc()
+        return {"status": "error", "message": f"Lỗi khi kiểm tra tính nhất quán: {str(e)}"}

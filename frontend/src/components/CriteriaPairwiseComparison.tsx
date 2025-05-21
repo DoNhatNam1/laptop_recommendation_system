@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react"; // Add useRef import
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
@@ -24,32 +24,22 @@ import {
   Edit,
   ArrowRight,
   Save,
-  Eye,
   XCircle,
-  Clock,
-  Calculator,
-  Loader2,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogFooter,
 } from "./ui/dialog";
 import apiService from "@/services/api";
-import { Comparison, ComparisonRequest } from "@/types";
+import { ProcessComparisonsRequest, ProcessComparisonsResponse } from "@/types";
+import Cookies from "js-cookie";
 
 // Define criteria based on usage
 const CRITERIA_BY_USAGE = {
-  office: [
-    "Hiệu năng",
-    "Giá",
-    "Màn hình",
-    "Pin",
-    "Thiết kế",
-    "Độ bền",
-  ],
+  office: ["Hiệu năng", "Giá", "Màn hình", "Pin", "Thiết kế", "Độ bền"],
   gaming: [
     "Hiệu năng",
     "Card đồ họa",
@@ -58,14 +48,7 @@ const CRITERIA_BY_USAGE = {
     "Giá",
     "Độ bền",
   ],
-  mobility: [
-    "Pin",
-    "Trọng lượng",
-    "Hiệu năng",
-    "Giá",
-    "Màn hình",
-    "Độ bền",
-  ],
+  mobility: ["Pin", "Trọng lượng", "Hiệu năng", "Giá", "Màn hình", "Độ bền"],
 };
 
 // Define importance levels
@@ -127,6 +110,15 @@ const BackgroundDecoration = () => (
   </div>
 );
 
+// Define the comparison interface
+interface Comparison {
+  row: string;
+  column: string;
+  value: number | string;
+  completed?: boolean;
+  selectedCriteria?: string;
+}
+
 // Generate comparison pairs
 function generateComparisonPairs(criteria: string[]): Comparison[] {
   const pairs: Comparison[] = [];
@@ -150,9 +142,9 @@ function getCriteriaColor(criteriaName: string): string {
   const colorMap: Record<string, string> = {
     "Hiệu năng": "bg-blue-500",
     "Card đồ họa": "bg-indigo-500",
-    "Giá": "bg-green-500",
+    Giá: "bg-green-500",
     "Màn hình": "bg-purple-500",
-    "Pin": "bg-amber-500",
+    Pin: "bg-amber-500",
     "Thiết kế": "bg-rose-500",
     "Độ bền": "bg-teal-500",
     "Tản nhiệt": "bg-orange-500",
@@ -165,24 +157,34 @@ function getCriteriaColor(criteriaName: string): string {
 }
 
 function CriteriaPairwiseComparison() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const state = location.state || {};
-  const [processingMessage, setProcessingMessage] =
-    useState<string>("Đang khởi tạo...");
-  const { usage } = state;
-  const [criteria, setCriteria] = useState<string[]>([]);
+  const [searchParams] = useSearchParams();
+
+  const processingMessage = "Đang khởi tạo...";
+
+  // Extract parameters from URL instead of location state
+  const urlParams = {
+    usage: searchParams.get("usage") || "",
+    fromBudget: searchParams.get("fromBudget") || "",
+    toBudget: searchParams.get("toBudget") || "",
+    performance: searchParams.get("performance") || "",
+    design: searchParams.get("design") || "",
+    fromScreenSize: searchParams.get("fromScreenSize") || "",
+    toScreenSize: searchParams.get("toScreenSize") || ""
+  };
+
+  // Get custom criteria from URL if available
+  const criteriaParam = searchParams.get("criteria");
+  const criteriaLabels = criteriaParam ? criteriaParam.split(",") : [];
+
   const [comparisons, setComparisons] = useState<Comparison[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [customValue, setCustomValue] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentChoice, setCurrentChoice] = useState<string | number | null>(
     null
   );
-  const [selectionMade, setSelectionMade] = useState(false);
   const [selectedCriteria, setSelectedCriteria] = useState<string | null>(null);
   const [showImportanceSelection, setShowImportanceSelection] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -191,152 +193,66 @@ function CriteriaPairwiseComparison() {
   );
   const [tempEditValue, setTempEditValue] = useState<string>("");
 
-  // Thêm state theo dõi tiến trình
+  // State for direct API approach
   const [processingState, setProcessingState] = useState<
     "idle" | "processing" | "success" | "error"
   >("idle");
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingError, setProcessingError] = useState<string | null>(null);
-  const [processingTimer, setProcessingTimer] = useState<NodeJS.Timeout | null>(
-    null
-  );
-  const [taskId, setTaskId] = useState<string | null>(null);
 
-useEffect(() => {
-  // Kiểm tra xem có đủ dữ liệu đầu vào hay không
-  const requiredFields = ['usage', 'fromBudget', 'toBudget', 'fromScreenSize', 'toScreenSize', 'performance', 'design'];
-  const missingFields = requiredFields.filter(field => state[field] === undefined || state[field] === null);
-  
-  if (missingFields.length > 0) {
-    console.error("Thiếu thông tin cần thiết:", missingFields);
-    navigate('/', { 
-      state: { 
-        error: "Thiếu thông tin cần thiết để tiến hành so sánh. Vui lòng thực hiện lại từ đầu." 
-      }
-    });
-  }
-}, [state, navigate]);
-  
+  // State for review dialog
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
 
-useEffect(() => {
-  if (!taskId) return;
-  
-  console.log(`⏳ Bắt đầu polling với taskId: ${taskId}`);
-
-
-  // Timer chính để polling API
-  const pollingTimer = setInterval(async () => {
-    try {
-      console.log(`🔄 Đang kiểm tra trạng thái cho taskId: ${taskId}`);
-      const statusResult = await apiService.checkProcessingStatus(taskId);
-      console.log(`📊 Kết quả trạng thái:`, statusResult);
-      
-      // Cập nhật UI với thông tin từ API - không so sánh với giá trị mô phỏng nữa
-      if (statusResult && typeof statusResult.progress === 'number') {
-        setProcessingProgress(statusResult.progress);
-        console.log(`⏱️ Tiến trình API: ${statusResult.progress}%`);
-        
-        if (statusResult.message) {
-          setProcessingMessage(statusResult.message);
-        } else {
-          // Cập nhật thông báo theo tiến trình thực từ API
-          if (statusResult.progress < 30) {
-            setProcessingMessage("Đang phân tích dữ liệu so sánh...");
-          } else if (statusResult.progress < 60) {
-            setProcessingMessage("Đang tính toán độ nhất quán...");
-          } else if (statusResult.progress < 85) {
-            setProcessingMessage("Đang xếp hạng laptop phù hợp...");
-          } else {
-            setProcessingMessage("Đang hoàn thiện kết quả...");
-          }
-        }
-      }
-      
-      // Xử lý các trạng thái
-      if (statusResult && statusResult.status === "completed") {
-        console.log("✅ Xử lý hoàn tất!");
-        clearInterval(pollingTimer);
-        
-        // Set 100% khi hoàn thành
-        setProcessingProgress(100);
-        setProcessingMessage("Đã hoàn thành phân tích!");
-        
-        try {
-          // Lấy kết quả từ API
-          const finalResult = await apiService.getProcessingResult(taskId);
-          console.log(`📋 Kết quả cuối cùng:`, finalResult);
-          
-          // Cập nhật UI và chuyển hướng
-          setProcessingState("success");
-          setResult(finalResult);
-          
-          setTimeout(() => {
-            navigate("/recommendations", { state: { result: finalResult } });
-          }, 1500);
-          
-        } catch (resultError) {
-          console.error("❌ Lỗi khi lấy kết quả:", resultError);
-          setProcessingState("error");
-          setProcessingError("Không thể lấy kết quả xử lý. Vui lòng thử lại sau.");
-        }
-        
-        setLoading(false);
-        setIsSubmitting(false);
-        
-      } else if (statusResult && statusResult.status === "error") {
-        // Xử lý lỗi
-        clearInterval(pollingTimer);
-        
-        setProcessingState("error");
-        setProcessingError(statusResult.message || "Có lỗi xảy ra trong quá trình xử lý");
-        setLoading(false);
-        setIsSubmitting(false);
-      }
-      
-    } catch (error) {
-      console.error("❌ Lỗi kiểm tra trạng thái:", error);
-      clearInterval(pollingTimer);
-      
-      setProcessingState("error");
-      setProcessingError("Không thể kết nối đến máy chủ để kiểm tra tiến độ");
-      setLoading(false);
-      setIsSubmitting(false);
-    }
-  }, 1000);
-  
-  // Lưu timer vào state để tham chiếu
-  setProcessingTimer(pollingTimer);
-  
-  // Cleanup khi component unmount hoặc taskId thay đổi
-  return () => {
-    if (pollingTimer) clearInterval(pollingTimer);
-  };
-  
-}, [taskId, navigate]);
-  useEffect(() => {
-    if (usage) {
-      const usageCriteria =
-        CRITERIA_BY_USAGE[usage as keyof typeof CRITERIA_BY_USAGE] ||
-        CRITERIA_BY_USAGE.office;
-      setCriteria(usageCriteria);
-      setComparisons(generateComparisonPairs(usageCriteria));
-    }
-  }, [usage]);
+  const firstRenderRef = useRef(true);
+  const hasInitializedCriteria = useRef(false); // Ref to track if criteria has been initialized
 
   useEffect(() => {
-    // Clean up timer when component unmounts
-    return () => {
-      if (processingTimer) {
-        clearInterval(processingTimer);
-      }
-    };
-  }, [processingTimer]);
+    // Only run validation on the first render
+    if (!firstRenderRef.current) return;
+    
+    // Validate required URL parameters, but only for essential ones
+    if (!searchParams.get("usage")) {
+      console.error("Thiếu thông tin cần thiết: usage");
+      navigate("/", {
+        state: {
+          error: "Thiếu thông tin cần thiết để tiến hành so sánh. Vui lòng thực hiện lại từ đầu.",
+        },
+      });
+      return;
+    }
+
+    // Mark the first render as complete
+    firstRenderRef.current = false;
+  }, [searchParams, navigate]);
+
+  useEffect(() => {
+    // Only run once on component mount
+    if (hasInitializedCriteria.current) return;
+    
+    // Thay vì gán vào state, tạo biến local và sử dụng trực tiếp
+    let criteriaToUse: string[];
+    
+    if (criteriaLabels && criteriaLabels.length >= 2) {
+      // Use custom criteria from URL parameters
+      criteriaToUse = criteriaLabels;
+    } else {
+      // Fallback to predefined criteria by usage
+      criteriaToUse = CRITERIA_BY_USAGE[urlParams.usage as keyof typeof CRITERIA_BY_USAGE] || 
+                      CRITERIA_BY_USAGE.office;
+    }
+    
+    // Khởi tạo comparisons trực tiếp từ criteriaToUse
+    setComparisons(generateComparisonPairs(criteriaToUse));
+
+    // Mark as initialized so it won't run again
+    hasInitializedCriteria.current = true;
+  }, []);  // Empty dependency array - will only run once on mount
 
   const currentComparison = comparisons[currentIndex] || null;
 
   // Function to get usage title for display
   const getUsageTitle = () => {
-    switch (usage) {
+    switch (urlParams.usage) {
       case "office":
         return "Học tập & Văn phòng";
       case "gaming":
@@ -353,157 +269,162 @@ useEffect(() => {
     setShowImportanceSelection(true);
   };
 
-  // Thêm hàm xử lý auto-fill data vào component CriteriaPairwiseComparison
-const handleAutoFillTestData = () => {
-  // Dữ liệu test từ file HTTP
-  const testData = [
-    { row: "Hiệu năng", column: "Giá", value: 3 },
-    { row: "Hiệu năng", column: "Màn hình", value: "5/2" },
-    { row: "Hiệu năng", column: "Pin", value: 2 },
-    { row: "Hiệu năng", column: "Thiết kế", value: 4 },
-    { row: "Hiệu năng", column: "Độ bền", value: "7/2" },
-    { row: "Giá", column: "Màn hình", value: "3/2" },
-    { row: "Giá", column: "Pin", value: "5/2" },
-    { row: "Giá", column: "Thiết kế", value: 3 },
-    { row: "Giá", column: "Độ bền", value: 3 },
-    { row: "Màn hình", column: "Pin", value: "9/5" },
-    { row: "Màn hình", column: "Thiết kế", value: "11/5" },
-    { row: "Màn hình", column: "Độ bền", value: "5/2" },
-    { row: "Pin", column: "Thiết kế", value: "27/10" },
-    { row: "Pin", column: "Độ bền", value: 2 },
-    { row: "Thiết kế", column: "Độ bền", value: "3/2" },
-  ];
+  // Test data functions
+  const handleAutoFillTestData = () => {
+    // Test data from complete-full.http
+    const testData = [
+      { row: "Hiệu năng", column: "Giá", value: 3, selectedCriteria: "Hiệu năng" },
+      { row: "Hiệu năng", column: "Màn hình", value: "5/2", selectedCriteria: "Hiệu năng" },
+      { row: "Hiệu năng", column: "Pin", value: 2, selectedCriteria: "Hiệu năng" },
+      { row: "Hiệu năng", column: "Thiết kế", value: 4, selectedCriteria: "Hiệu năng" },
+      { row: "Hiệu năng", column: "Độ bền", value: "7/2", selectedCriteria: "Hiệu năng" },
+      { row: "Giá", column: "Màn hình", value: "3/2", selectedCriteria: "Giá" },
+      { row: "Giá", column: "Pin", value: "5/2", selectedCriteria: "Giá" },
+      { row: "Giá", column: "Thiết kế", value: 3, selectedCriteria: "Giá" },
+      { row: "Giá", column: "Độ bền", value: 3, selectedCriteria: "Giá" },
+      { row: "Màn hình", column: "Pin", value: "9/5", selectedCriteria: "Màn hình" },
+      { row: "Màn hình", column: "Thiết kế", value: "11/5", selectedCriteria: "Màn hình" },
+      { row: "Màn hình", column: "Độ bền", value: "5/2", selectedCriteria: "Màn hình" },
+      { row: "Pin", column: "Thiết kế", value: "27/10", selectedCriteria: "Pin" },
+      { row: "Pin", column: "Độ bền", value: 2, selectedCriteria: "Pin" },
+      { row: "Thiết kế", column: "Độ bền", value: "3/2", selectedCriteria: "Thiết kế" },
+    ];
 
-  // Cập nhật state comparisons với dữ liệu test
-  const updatedComparisons = [...comparisons].map((comparison) => {
-    // Tìm dữ liệu test tương ứng
-    const testItem = testData.find(
-      (item) =>
-        (item.row === comparison.row && item.column === comparison.column) ||
-        (item.row === comparison.column && item.column === comparison.row)
-    );
-
-    if (testItem) {
-      // Nếu tìm được item tương ứng
-      if (testItem.row === comparison.row && testItem.column === comparison.column) {
-        // Nếu đúng thứ tự row/column
+    // Create a mapping to find all test data applicable to each comparison
+    const updatedComparisons = comparisons.map((comparison) => {
+      // Try to find a direct match
+      const directMatch = testData.find(
+        test => test.row === comparison.row && test.column === comparison.column
+      );
+      
+      if (directMatch) {
         return {
           ...comparison,
-          value: testItem.value,
+          value: directMatch.value,
           completed: true,
-          selectedCriteria: testItem.row, // Giả định tiêu chí đầu tiên quan trọng hơn
+          selectedCriteria: directMatch.selectedCriteria
         };
-      } else {
-        // Nếu thứ tự row/column bị đảo ngược
-        // Đảo ngược value
-        const invertedValue = 
-          typeof testItem.value === "string" && testItem.value.includes("/") 
-            ? (() => {
-                const [numerator, denominator] = testItem.value.split("/").map(Number);
-                return `${denominator}/${numerator}`;
-              })()
-            : typeof testItem.value === "number"
-            ? `1/${testItem.value}`
-            : testItem.value;
+      }
+
+      // Try to find a reverse match and invert the value
+      const reverseMatch = testData.find(
+        test => test.row === comparison.column && test.column === comparison.row
+      );
+
+      if (reverseMatch) {
+        // Invert the value
+        let invertedValue;
+        if (typeof reverseMatch.value === "string" && reverseMatch.value.includes("/")) {
+          const [numerator, denominator] = reverseMatch.value.split("/").map(Number);
+          invertedValue = `${denominator}/${numerator}`;
+        } else if (typeof reverseMatch.value === "number") {
+          invertedValue = `1/${reverseMatch.value}`;
+        } else {
+          invertedValue = 1; // Default fallback
+        }
 
         return {
           ...comparison,
           value: invertedValue,
           completed: true,
-          selectedCriteria: testItem.row,
+          selectedCriteria: comparison.row // When inverted, the selectedCriteria changes
         };
       }
-    }
-    return comparison;
-  });
 
-  // Cập nhật state
-  setComparisons(updatedComparisons);
-  setError(null);
-};
+      // If no match found, keep the original comparison
+      return comparison;
+    });
 
-// Thêm hàm này dưới hàm handleAutoFillTestData
-const handleInconsistentTestData = () => {
-  // Dữ liệu test không nhất quán với các mâu thuẫn có chủ đích
-  const inconsistentTestData = [
-    { row: "Hiệu năng", column: "Giá", value: 5 },
-    { row: "Giá", column: "Màn hình", value: 4 },
-    { row: "Màn hình", column: "Hiệu năng", value: 3 },
-    { row: "Hiệu năng", column: "Pin", value: 7 },
-    { row: "Hiệu năng", column: "Thiết kế", value: 4 },
-    { row: "Hiệu năng", column: "Độ bền", value: "7/2" },
-    { row: "Giá", column: "Pin", value: "5/2" },
-    { row: "Giá", column: "Thiết kế", value: 3 },
-    { row: "Giá", column: "Độ bền", value: 10 },     // Thay đổi từ 6 thành 10
-    { row: "Màn hình", column: "Pin", value: "9/5" },
-    { row: "Màn hình", column: "Thiết kế", value: "11/5" },
-    { row: "Màn hình", column: "Độ bền", value: "5/2" },
-    { row: "Pin", column: "Thiết kế", value: "27/10" },
-    { row: "Pin", column: "Độ bền", value: "3/2" },  // Thay đổi từ 2 thành "3/2"
-    { row: "Thiết kế", column: "Độ bền", value: "3/2" }
-  ];
+    setComparisons(updatedComparisons);
+    setError(null);
+    
+    toast({
+      title: "Dữ liệu mẫu đã được áp dụng",
+      description: "Tất cả các đánh giá đã được hoàn thành tự động",
+      variant: "default",
+    });
+  };
 
-  // Cập nhật state comparisons với dữ liệu không nhất quán
-  const updatedComparisons = [...comparisons].map((comparison) => {
-    // Tìm dữ liệu test tương ứng
-    const testItem = inconsistentTestData.find(
-      (item) =>
-        (item.row === comparison.row && item.column === comparison.column) ||
-        (item.row === comparison.column && item.column === comparison.row)
-    );
+  const handleInconsistentTestData = () => {
+    // Inconsistent test data from inconsistent-matrices.http
+    const inconsistentTestData = [
+      { row: "Hiệu năng", column: "Giá", value: 7, selectedCriteria: "Hiệu năng" },
+      { row: "Hiệu năng", column: "Màn hình", value: "1/5", selectedCriteria: "Màn hình" },
+      { row: "Hiệu năng", column: "Pin", value: 9, selectedCriteria: "Hiệu năng" },
+      { row: "Hiệu năng", column: "Thiết kế", value: 4, selectedCriteria: "Hiệu năng" },
+      { row: "Hiệu năng", column: "Độ bền", value: "1/3", selectedCriteria: "Độ bền" },
+      { row: "Giá", column: "Màn hình", value: "1/8", selectedCriteria: "Màn hình" },
+      { row: "Giá", column: "Pin", value: "5/2", selectedCriteria: "Giá" },
+      { row: "Giá", column: "Thiết kế", value: 3, selectedCriteria: "Giá" },
+      { row: "Giá", column: "Độ bền", value: 6, selectedCriteria: "Giá" },
+      { row: "Màn hình", column: "Pin", value: 9, selectedCriteria: "Màn hình" },
+      { row: "Màn hình", column: "Thiết kế", value: "7/2", selectedCriteria: "Màn hình" },
+      { row: "Màn hình", column: "Độ bền", value: 8, selectedCriteria: "Màn hình" },
+      { row: "Pin", column: "Thiết kế", value: "1/6", selectedCriteria: "Thiết kế" },
+      { row: "Pin", column: "Độ bền", value: "1/4", selectedCriteria: "Độ bền" },
+      { row: "Thiết kế", column: "Độ bền", value: 5, selectedCriteria: "Thiết kế" }
+    ];
 
-    if (testItem) {
-      // Nếu tìm được item tương ứng
-      if (testItem.row === comparison.row && testItem.column === comparison.column) {
-        // Nếu đúng thứ tự row/column
+    // Map and update comparisons with inconsistent data
+    const updatedComparisons = comparisons.map((comparison) => {
+      // Try to find a direct match
+      const directMatch = inconsistentTestData.find(
+        test => test.row === comparison.row && test.column === comparison.column
+      );
+      
+      if (directMatch) {
         return {
           ...comparison,
-          value: testItem.value,
+          value: directMatch.value,
           completed: true,
-          selectedCriteria: testItem.row,
+          selectedCriteria: directMatch.selectedCriteria
         };
-      } else {
-        // Nếu thứ tự row/column bị đảo ngược
-        // Đảo ngược value
-        const invertedValue = 
-          typeof testItem.value === "string" && testItem.value.includes("/") 
-            ? (() => {
-                const [numerator, denominator] = testItem.value.split("/").map(Number);
-                return `${denominator}/${numerator}`;
-              })()
-            : typeof testItem.value === "number"
-            ? `1/${testItem.value}`
-            : testItem.value;
+      }
+
+      // Try to find a reverse match and invert the value
+      const reverseMatch = inconsistentTestData.find(
+        test => test.row === comparison.column && test.column === comparison.row
+      );
+
+      if (reverseMatch) {
+        // Invert the value
+        let invertedValue;
+        if (typeof reverseMatch.value === "string" && reverseMatch.value.includes("/")) {
+          const [numerator, denominator] = reverseMatch.value.split("/").map(Number);
+          invertedValue = `${denominator}/${numerator}`;
+        } else if (typeof reverseMatch.value === "number") {
+          invertedValue = `1/${reverseMatch.value}`;
+        } else {
+          invertedValue = 1; // Default fallback
+        }
 
         return {
           ...comparison,
           value: invertedValue,
           completed: true,
-          selectedCriteria: testItem.row,
+          selectedCriteria: comparison.row // When inverted, the selectedCriteria changes
         };
       }
-    }
-    return comparison;
-  });
 
-  // Cập nhật state
-  setComparisons(updatedComparisons);
-  setError(null);
-  
-  // Thông báo cho người dùng
-  toast({
-    title: "Dữ liệu không nhất quán đã được áp dụng",
-    description: "Các đánh giá này cố ý tạo ra sự mâu thuẫn để kiểm tra CR > 0.1",
-    variant: "warning",
-    duration: 3000
-  });
-};
+      // If no match found, keep the original comparison
+      return comparison;
+    });
+
+    setComparisons(updatedComparisons);
+    setError(null);
+    
+    toast({
+      title: "Dữ liệu không nhất quán đã được áp dụng",
+      description: "Các đánh giá này cố ý tạo ra mâu thuẫn để kiểm tra CR > 0.1",
+      variant: "warning",
+      duration: 3000
+    });
+  };
 
   const handleSelectImportanceLevel = (value: string | number) => {
     if (!currentComparison || !selectedCriteria) return;
 
     setCurrentChoice(value);
-    setSelectionMade(true);
 
     setTimeout(() => {
       const updatedComparisons = [...comparisons];
@@ -515,10 +436,9 @@ const handleInconsistentTestData = () => {
       };
 
       setComparisons(updatedComparisons);
-      setSelectionMade(false);
 
       if (editingIndex !== null) {
-        // Nếu đang trong chế độ chỉnh sửa, không tự động next
+        // Don't auto-advance if in edit mode
         return;
       }
 
@@ -597,7 +517,6 @@ const handleInconsistentTestData = () => {
       return;
     }
 
-    // Logic cũ cho Next
     if (
       currentIndex < comparisons.length - 1 &&
       comparisons[currentIndex].completed
@@ -615,125 +534,123 @@ const handleInconsistentTestData = () => {
     }
   };
 
+  // Updated submit handler using direct API
   const handleSubmit = async () => {
-    const incompleteComparisons = comparisons.filter((c) => !c.completed);
-    if (incompleteComparisons.length > 0) {
-      setError(
-        `Còn ${incompleteComparisons.length} cặp so sánh chưa hoàn thành`
-      );
+    if (currentIndex < comparisons.length - 1) {
+      toast({
+        title: "Chưa hoàn thành",
+        description: "Vui lòng hoàn thành tất cả các so sánh trước khi tiếp tục.",
+        variant: "destructive",
+      });
       return;
     }
-  
-    setIsSubmitting(true);
-    setLoading(true);
-    setError(null);
-    setProcessingState('processing');
-    setProcessingProgress(0);
-  
-    try {
-      // Lấy các giá trị đã chuyển đổi trực tiếp từ state
-      // KHÔNG cần chuyển đổi lại từ 'budget' và 'screenSize'
-      const { fromBudget, toBudget, fromScreenSize, toScreenSize, usage, performance, design } = state;
-  
-      // Chuẩn bị comparisons theo định dạng API
-      const apiComparisons = comparisons.map(
-        ({ row, column, value, selectedCriteria }) => {
-          // Xử lý value dựa trên loại dữ liệu và cách chọn
-          let formattedValue: string | number = value;
-          
-          // Trường hợp 1: value là phân số dạng string (ví dụ: "3/2")
-          if (typeof value === 'string' && value.includes('/')) {
-            const [numerator, denominator] = value.split('/').map(Number);
-            
-            if (selectedCriteria === column) {
-              // Đảo ngược phân số: "3/2" -> "2/3"
-              formattedValue = `${denominator}/${numerator}`;
-            } else {
-              // Giữ nguyên giá trị
-              formattedValue = value;
-            }
-          }
-          // Trường hợp 2: value là số dạng string hoặc number
-          else {
-            const numValue = Number(value);
-            
-            if (selectedCriteria === column) {
-              // Đảo ngược: 3 -> "1/3"
-              if (numValue === 1) {
-                formattedValue = "1";
-              } else {
-                formattedValue = `1/${numValue}`;
-              }
-            } else {
-              // Giữ nguyên dạng string
-              formattedValue = value.toString();
-            }
-          }
-          
-          // Trả về object với value đã được xử lý đúng định dạng
-          return {
-            row,
-            column,
-            value: formattedValue
-          };
-        }
-      );
-  
-// Đảm bảo kiểu dữ liệu gửi đi khớp với API
-const dataToSend: ComparisonRequest = {
-  usage,
-  fromBudget: Number(fromBudget),
-  toBudget: Number(toBudget),
-  performance,
-  design,
-  fromScreenSize: Number(fromScreenSize),
-  toScreenSize: Number(toScreenSize),
-  comparisons: apiComparisons
-};
 
-const response = await apiService.processComparisons(dataToSend);
-  
-      // Lưu taskId để polling
-      setTaskId(response.taskId);
+    if (processingState === "processing") return;
+
+    setProcessingState("processing");
+    setError(null);
+
+    try {
+      // Format the comparisons for API
+      const formattedComparisons = comparisons.map((comparison) => ({
+        row: comparison.row,
+        column: comparison.column,
+        value: typeof comparison.value === "string" ? comparison.value : comparison.value.toString(),
+        selected_criterion: comparison.selectedCriteria,
+      }));
+
+      // Prepare the request payload
+      const payload: ProcessComparisonsRequest = {
+        comparisons: formattedComparisons,
+        usage: searchParams.get("usage") || "general",
+      };
+
+      // Submit to API
+      const response: ProcessComparisonsResponse = await apiService.processComparisons(payload);
+
+      if (response.status === "success") {
+        if (response.consistency && response.consistency.is_consistent) {
+          // Success! Update state and prepare to navigate
+          setProcessingState("success");
+          
+          setTimeout(() => {
+            // Tạo URL params mới, giữ lại TẤT CẢ tham số lọc từ URL hiện tại
+            const params = new URLSearchParams(searchParams.toString());
+            
+            // CHỈ lưu dữ liệu vào cookies, KHÔNG thêm vào URL
+            if (response.weights && response.weights.formatted) {
+              const weightsObject: Record<string, number> = {};
+              response.weights.formatted.forEach(item => {
+                weightsObject[item.criterion] = item.weight;
+              });
+              
+              // Chỉ lưu vào cookies, không đưa vào URL
+              Cookies.set('criteriaWeights', JSON.stringify(weightsObject), { expires: 1, path: '/' });
+            }
+            
+            // Extract danh sách tiêu chí và chỉ lưu vào cookies
+            const criteriaList = comparisons
+              .map(comp => comp.row)
+              .filter((value, index, self) => self.indexOf(value) === index);
+            
+            // Chỉ lưu vào cookies
+            Cookies.set('criteriaList', JSON.stringify(criteriaList), { expires: 1, path: '/' });
+            
+            // Lưu thêm thông tin vào cookies
+            Cookies.set('processComparisonResponse', JSON.stringify(response), { expires: 1, path: '/' });
+            
+            // XÓA các tham số không cần thiết khỏi URL nếu có
+            params.delete('weights');
+            params.delete('criteria');
+            
+            // Chuyển đến trang tiếp theo với URL ngắn gọn hơn
+            navigate(`/laptop-selection?${params.toString()}`);
+          }, 1500);
+        } else {
+          // Matrix is inconsistent but response was successful
+          setProcessingState("error");
+          setProcessingError(
+            response.consistency?.message ||
+            "Ma trận đánh giá không nhất quán. Vui lòng xem lại các so sánh của bạn."
+          );
+        }
+      } else {
+        // Error response
+        setProcessingState("error");
+        setProcessingError(
+          response.message || "Có lỗi xảy ra khi gửi dữ liệu. Vui lòng thử lại."
+        );
+      }
     } catch (error) {
       console.error("Error submitting comparisons:", error);
-      setError("Có lỗi xảy ra khi gửi dữ liệu. Vui lòng thử lại.");
-      setLoading(false);
+      setProcessingState("error");
+      setProcessingError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
+    } finally {
       setIsSubmitting(false);
-      setProcessingState('error');
-      setProcessingError('Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
     }
   };
-  
-  // Hàm dọn dẹp khi component unmount
-  useEffect(() => {
-    return () => {
-      if (processingTimer) {
-        clearInterval(processingTimer);
-      }
-    };
-  }, [processingTimer]);
 
   const getComparisonDisplayValue = (comparison: Comparison) => {
-    // Nếu là phân số string
+    // If it's a fraction string
     if (
       typeof comparison.value === "string" &&
       comparison.value.includes("/")
     ) {
       return comparison.value;
     }
-    // Nếu là số
+    // If it's a number
     if (typeof comparison.value === "number") {
-      // Nếu là số nguyên
+      // If it's an integer
       if (Number.isInteger(comparison.value)) {
         return comparison.value.toString();
       }
-      // Số thập phân
+      // If it's a decimal
       return comparison.value.toFixed(2);
     }
     return comparison.value.toString();
   };
 
+  // Edit functions
   const handleStartDirectEdit = (
     index: number,
     currentValue: string | number
@@ -743,7 +660,7 @@ const response = await apiService.processComparisons(dataToSend);
   };
 
   const handleSaveDirectEdit = (index: number) => {
-    // Validate giá trị
+    // Validate value
     const fractionRegex = /^(\d+)\/(\d+)$/;
     const numberRegex = /^\d+(\.\d+)?$/;
     let validValue: string | number = tempEditValue.trim();
@@ -779,7 +696,7 @@ const response = await apiService.processComparisons(dataToSend);
     setEditingValueIndex(null);
   };
 
-  // Công thức đúng - tính % đã hoàn thành
+  // Calculate percentage completed
   const completedPercentage = comparisons.length
     ? Math.round(
         (comparisons.filter((c) => c.completed).length / comparisons.length) *
@@ -788,21 +705,37 @@ const response = await apiService.processComparisons(dataToSend);
     : 0;
 
   const isFormValid =
-    comparisons.every((c) => c.completed) && !loading && !isSubmitting;
+    comparisons.every((c) => c.completed) && processingState !== "processing" && !isSubmitting;
+
+  // Thêm useEffect để mô phỏng tiến độ
+  useEffect(() => {
+    if (processingState === "processing") {
+      const timer = setInterval(() => {
+        setProcessingProgress(prev => {
+          if (prev >= 90) clearInterval(timer);
+          return Math.min(prev + 10, 90);
+        });
+      }, 300);
+      return () => clearInterval(timer);
+    } else {
+      setProcessingProgress(0);
+    }
+  }, [processingState]);
 
   return (
     <motion.div
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="relative min-h-screen px-4 py-8 overflow-hidden bg-gradient-to-b from-slate-50 to-white"
+      className="relative min-h-screen p-4 bg-gradient-to-br from-slate-50 to-slate-100 md:p-8"
     >
       <BackgroundDecoration />
 
-      <div className="relative z-10 max-w-3xl mx-auto">
-        <motion.div variants={itemVariants} className="mb-8 text-center">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <motion.div variants={itemVariants} className="mb-6 text-center">
           <h1 className="mb-2 text-3xl font-bold text-gray-800">
-            Bước 3: So sánh tiêu chí
+            Bước 3: So sánh cặp tiêu chí
           </h1>
           <p className="text-slate-600">
             Mục đích sử dụng:{" "}
@@ -820,213 +753,42 @@ const response = await apiService.processComparisons(dataToSend);
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="mb-6">
+        {/* Progress indicator */}
+        <motion.div variants={itemVariants} className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="font-medium text-gray-700">
-              Tiến độ: {currentIndex + 1}/{comparisons.length}
+            <span className="text-sm font-medium text-gray-700">
+              Tiến độ so sánh
             </span>
-            <span className="font-semibold text-indigo-600">
+            <Badge
+                variant="default"
+                className={`${
+                  completedPercentage === 100
+                    ? "bg-green-100 text-green-800 border-green-200"
+                    : "bg-indigo-100 text-indigo-800 border-indigo-200"
+                }`}
+              >
               {completedPercentage}% hoàn thành
-            </span>
+            </Badge>
           </div>
-          <div className="w-full h-3 overflow-hidden bg-gray-200 rounded-full">
-            <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
-              initial={{ width: "0%" }}
-              animate={{ width: `${completedPercentage}%` }}
-              transition={{ duration: 0.5 }}
-            />
+          <div className="h-3 bg-gray-200 rounded-full">
+            <div
+              className={`h-3 rounded-full ${
+                completedPercentage === 100
+                  ? "bg-gradient-to-r from-green-400 to-green-600"
+                  : "bg-gradient-to-r from-indigo-500 to-purple-600"
+              }`}
+              style={{ width: `${completedPercentage}%` }}
+            ></div>
           </div>
         </motion.div>
 
-        {completedPercentage > 0 && !result && (
-          <motion.div
-            variants={itemVariants}
-            className="flex justify-center mb-6"
-          >
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="gap-2 bg-white shadow-md hover:bg-gray-50"
-                >
-                  <Eye size={16} />
-                  Xem danh sách so sánh (
-                  {Math.round(
-                    (comparisons.filter((c) => c.completed).length /
-                      comparisons.length) *
-                      100
-                  )}
-                  %)
-                </Button>
-              </DialogTrigger>
-
-              {/* Điều chỉnh style và kích thước dialog */}
-              <DialogContent className="max-w-7xl w-[95vw] max-h-[85vh] overflow-y-auto bg-white/95 backdrop-blur-lg border-indigo-100">
-                <DialogHeader className="mb-2">
-                  <DialogTitle className="text-2xl font-bold text-center text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text">
-                    Danh sách so sánh
-                  </DialogTitle>
-                  <p className="mt-2 text-center text-gray-600">
-                    Bạn có thể sửa giá trị đã đánh giá bằng cách nhấn vào giá
-                    trị đó
-                  </p>
-                </DialogHeader>
-
-                <div className="grid grid-cols-1 gap-4 px-4 py-4">
-                  {comparisons.map((comp, idx) => (
-                    <div
-                      key={idx}
-                      className={`border rounded-lg p-4 ${
-                        comp.completed
-                          ? "bg-white shadow-sm hover:bg-gray-50"
-                          : "bg-gray-50 opacity-60"
-                      } transition-colors`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm text-gray-500">
-                          So sánh {idx + 1}
-                        </span>
-                        {comp.completed ? (
-                          <Badge
-                            variant="outline"
-                            className="text-green-700 border-green-200 bg-green-50"
-                          >
-                            Đã đánh giá
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="bg-amber-50 text-amber-700 border-amber-200"
-                          >
-                            Chưa đánh giá
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-                        <div className="flex flex-wrap items-center min-w-0 gap-2">
-                          {comp.completed ? (
-                            <>
-                              <Badge
-                                className={`px-3 py-1.5 text-sm font-bold text-white ${getCriteriaColor(
-                                  comp.selectedCriteria || ""
-                                )} mr-1 truncate max-w-[120px]`}
-                              >
-                                {comp.selectedCriteria}
-                              </Badge>
-                              <ArrowRight className="w-4 h-4 mx-1" />
-                              <Badge
-                                className={`px-3 py-1.5 text-sm font-bold text-white ${getCriteriaColor(
-                                  comp.selectedCriteria === comp.row
-                                    ? comp.column
-                                    : comp.row
-                                )} opacity-80 truncate max-w-[120px]`}
-                              >
-                                {comp.selectedCriteria === comp.row
-                                  ? comp.column
-                                  : comp.row}
-                              </Badge>
-                            </>
-                          ) : (
-                            <>
-                              <Badge
-                                className={`px-3 py-1.5 text-sm font-bold text-white ${getCriteriaColor(
-                                  comp.row
-                                )} mr-1 truncate max-w-[120px]`}
-                              >
-                                {comp.row}
-                              </Badge>
-                              <ArrowRight className="w-4 h-4 mx-1" />
-                              <Badge
-                                className={`px-3 py-1.5 text-sm font-bold text-white ${getCriteriaColor(
-                                  comp.column
-                                )} opacity-80 truncate max-w-[120px]`}
-                              >
-                                {comp.column}
-                              </Badge>
-                            </>
-                          )}
-                        </div>
-
-                        {comp.completed ? (
-                          <div className="flex items-center gap-2 ml-auto">
-                            {editingValueIndex === idx ? (
-                              <>
-                                <Input
-                                  value={tempEditValue}
-                                  onChange={(e) =>
-                                    setTempEditValue(e.target.value)
-                                  }
-                                  className="w-20 text-sm font-medium h-9"
-                                  autoFocus
-                                />
-                                <div className="flex items-center">
-                                  <Button
-                                    onClick={() => handleSaveDirectEdit(idx)}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-8 h-8 p-0"
-                                  >
-                                    <Save className="w-4 h-4 text-green-600" />
-                                    <span className="sr-only">Lưu</span>
-                                  </Button>
-                                  <Button
-                                    onClick={handleCancelDirectEdit}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-8 h-8 p-0"
-                                  >
-                                    <XCircle className="w-4 h-4 text-red-600" />
-                                    <span className="sr-only">Hủy</span>
-                                  </Button>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    handleStartDirectEdit(idx, comp.value)
-                                  }
-                                  className="text-sm font-medium hover:text-indigo-600 hover:underline min-w-[36px] text-right"
-                                >
-                                  {getComparisonDisplayValue(comp)}{" "}
-                                  {typeof comp.value === "number" &&
-                                    comp.value > 1 &&
-                                    "lần"}
-                                </button>
-                                <Button
-                                  onClick={() =>
-                                    handleStartDirectEdit(idx, comp.value)
-                                  }
-                                  variant="ghost"
-                                  size="sm"
-                                  className="w-8 h-8 p-0"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                  <span className="sr-only">Sửa</span>
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="ml-auto text-sm text-gray-400">—</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-          </motion.div>
-        )}
-
+        {/* Error message */}
         {error && (
           <motion.div
             variants={itemVariants}
+            className="mb-6"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-4"
           >
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -1034,604 +796,564 @@ const response = await apiService.processComparisons(dataToSend);
           </motion.div>
         )}
 
-        {currentComparison && !result && (
+        {/* Processing state */}
+        {processingState === "processing" && (
+          <Card className="mb-6 border-none shadow-lg">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center p-8 text-center">
+                <div className="relative mb-6">
+                  <div className="flex items-center justify-center w-24 h-24 border-4 border-indigo-100 rounded-full">
+                    <div
+                      className="absolute top-0 left-0 w-24 h-24 border-4 rounded-full border-t-indigo-600"
+                      style={{ animation: "spin 1s linear infinite" }}
+                    ></div>
+                    <span className="text-xl font-bold text-indigo-700">
+                      {processingProgress}%
+                    </span>
+                  </div>
+                </div>
+                <h3 className="mb-3 text-xl font-bold text-gray-800">
+                  {processingMessage}
+                </h3>
+                <p className="text-gray-500">
+                  Vui lòng đợi trong giây lát, hệ thống đang xử lý dữ liệu so
+                  sánh của bạn.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Error processing state */}
+        {processingState === "error" && (
+          <Card className="mb-6 border-none shadow-lg">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center p-8 text-center">
+                <div className="flex items-center justify-center w-20 h-20 mb-6 text-red-600 bg-red-100 rounded-full">
+                  <XCircle size={40} />
+                </div>
+                <h3 className="mb-3 text-xl font-bold text-gray-800">
+                  Phát hiện vấn đề về tính nhất quán
+                </h3>
+                <p className="mb-6 text-gray-700">{processingError}</p>
+                <div className="w-full p-4 mb-6 text-left border border-red-200 rounded-lg bg-red-50">
+                  <p className="text-red-800">
+                    <strong>Gợi ý:</strong> Hãy kiểm tra lại các đánh giá để đảm
+                    bảo tính nhất quán. Ví dụ, nếu A quan trọng gấp 3 lần B và B
+                    quan trọng gấp 2 lần C, thì A phải quan trọng gấp khoảng 6
+                    lần C.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setProcessingState("idle")}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Quay lại chỉnh sửa so sánh
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Success processing state */}
+        {processingState === "success" && (
+          <Card className="mb-6 border-none shadow-lg">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center p-8 text-center">
+                <div className="flex items-center justify-center w-20 h-20 mb-6 text-green-600 bg-green-100 rounded-full">
+                  <CheckCircle size={40} />
+                </div>
+                <h3 className="mb-3 text-xl font-bold text-gray-800">
+                  Phân tích hoàn tất
+                </h3>
+                <p className="mb-6 text-gray-500">
+                  Đang chuyển đến trang kết quả laptop phù hợp...
+                </p>
+                <div className="w-12 h-12 border-4 rounded-full border-t-green-600 border-r-green-600 border-b-green-100 border-l-green-100 animate-spin"></div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Main comparison card */}
+        {processingState === "idle" && currentComparison && (
           <motion.div
             variants={itemVariants}
             key={`comparison-${currentIndex}`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
           >
-            <Card className="mb-6 overflow-hidden border-none shadow-xl bg-white/90 backdrop-blur-sm">
+            <Card className="border-none shadow-xl">
               <CardHeader className="pb-4 border-b border-gray-100">
-                <CardTitle className="text-center text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text">
-                  So sánh cặp tiêu chí {currentIndex + 1}/{comparisons.length}
-                </CardTitle>
-                <CardDescription className="text-center text-gray-600">
-                  {!showImportanceSelection
-                    ? "Chọn tiêu chí nào quan trọng hơn"
-                    : `Đánh giá mức độ quan trọng của ${selectedCriteria}`}
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold">
+                    So sánh {currentIndex + 1}/{comparisons.length}
+                  </CardTitle>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-500">
+                      Đã hoàn thành:{" "}
+                      {comparisons.filter((c) => c.completed).length}/
+                      {comparisons.length}
+                    </span>
+                  </div>
+                </div>
+                <CardDescription>
+                  Chọn tiêu chí quan trọng hơn và mức độ quan trọng
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="pt-6">
-                {!showImportanceSelection ? (
-                  // Bước 1: Chọn tiêu chí nào quan trọng hơn
-                  <div>
-                    <div className="flex items-center justify-center gap-10 mb-8">
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Button
-                          onClick={() =>
-                            handleCriteriaSelection(currentComparison.row)
-                          }
-                          className={`px-6 py-8 h-auto flex flex-col gap-3 ${
-                            selectedCriteria === currentComparison.row
-                              ? "ring-4 ring-indigo-300"
-                              : ""
-                          }`}
-                          variant="outline"
+                {/* Main comparison section */}
+                <div className="flex flex-col space-y-6">
+                  {/* Criteria selection */}
+                  <div className="flex flex-col space-y-6 md:flex-row md:space-x-4 md:space-y-0">
+                    {/* First criteria */}
+                    <div
+                      className={`flex-1 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        selectedCriteria === currentComparison.row
+                          ? "border-indigo-500 bg-indigo-50"
+                          : "border-gray-200 hover:border-indigo-300"
+                      }`}
+                      onClick={() =>
+                        handleCriteriaSelection(currentComparison.row)
+                      }
+                    >
+                      <div className="flex items-center mb-2 space-x-3">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${getCriteriaColor(
+                            currentComparison.row
+                          )}`}
                         >
-                          <Badge
-                            className={`px-4 py-2 text-base font-bold text-white ${getCriteriaColor(
-                              currentComparison.row
-                            )} shadow-md`}
-                          >
-                            {currentComparison.row}
-                          </Badge>
-                          <span className="text-sm font-medium">
-                            Quan trọng hơn
+                          <span className="text-lg font-bold">
+                            {currentComparison.row.charAt(0)}
                           </span>
-                        </Button>
-                      </motion.div>
-
-                      <div className="flex flex-col items-center">
-                        <div className="p-2 mb-2 bg-gray-200 rounded-full">
-                          <Scale className="w-6 h-6 text-gray-500" />
                         </div>
-                        <div className="text-lg font-semibold text-gray-600">
-                          hoặc
+                        <div className="text-lg font-semibold">
+                          {currentComparison.row}
                         </div>
                       </div>
-
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Button
-                          onClick={() =>
-                            handleCriteriaSelection(currentComparison.column)
-                          }
-                          className={`px-6 py-8 h-auto flex flex-col gap-3 ${
-                            selectedCriteria === currentComparison.column
-                              ? "ring-4 ring-indigo-300"
-                              : ""
-                          }`}
-                          variant="outline"
-                        >
-                          <Badge
-                            className={`px-4 py-2 text-base font-bold text-white ${getCriteriaColor(
-                              currentComparison.column
-                            )} shadow-md`}
-                          >
-                            {currentComparison.column}
-                          </Badge>
-                          <span className="text-sm font-medium">
-                            Quan trọng hơn
-                          </span>
-                        </Button>
-                      </motion.div>
-                    </div>
-
-                    <p className="italic text-center text-gray-600">
-                      Chọn một trong hai tiêu chí bạn cho là quan trọng hơn
-                    </p>
-                  </div>
-                ) : (
-                  // Bước 2: Chọn mức độ quan trọng
-                  <div>
-                    <div className="flex items-center justify-center gap-8 mb-10">
-                      <motion.div className="relative">
-                        <Badge
-                          className={`px-5 py-3 text-base font-bold text-white ${getCriteriaColor(
-                            selectedCriteria || ""
-                          )} shadow-lg`}
-                        >
-                          {selectedCriteria}
-                        </Badge>
-                        {selectionMade && currentChoice && (
-                          <motion.div
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="absolute -top-2 -right-2 bg-green-500 rounded-full p-0.5"
-                          >
-                            <CheckCircle className="w-4 h-4 text-white" />
-                          </motion.div>
-                        )}
-                      </motion.div>
-
-                      <div className="flex flex-col items-center">
-                        <div className="text-lg font-semibold text-gray-800">
-                          quan trọng hơn
-                        </div>
-                      </div>
-
-                      <motion.div>
-                        <Badge
-                          className={`px-5 py-3 text-base font-bold text-white ${getCriteriaColor(
-                            selectedCriteria === currentComparison.row
-                              ? currentComparison.column
-                              : currentComparison.row
-                          )} shadow-lg opacity-70`}
-                        >
-                          {selectedCriteria === currentComparison.row
-                            ? currentComparison.column
-                            : currentComparison.row}
-                        </Badge>
-                      </motion.div>
-                    </div>
-
-                    <p className="mb-8 text-lg text-center text-gray-800">
-                      <span className="font-bold text-indigo-700">
-                        {selectedCriteria}
-                      </span>
-                      {" quan trọng hơn "}
-                      <span className="font-medium text-gray-600">
+                      <p className="text-sm text-gray-500">
                         {selectedCriteria === currentComparison.row
-                          ? currentComparison.column
-                          : currentComparison.row}
-                      </span>
-                      {" bao nhiêu lần?"}
-                    </p>
+                          ? "Đã chọn là quan trọng hơn"
+                          : "Chọn nếu tiêu chí này quan trọng hơn"}
+                      </p>
+                    </div>
 
-                    <div className="mb-8">
-                      <h4 className="mb-3 text-sm font-medium text-center text-gray-500">
-                        Các phân số thông dụng:
+                    {/* VS symbol */}
+                    <div className="flex items-center justify-center">
+                      <div className="px-4 py-2 font-semibold text-gray-600 bg-gray-100 rounded-full">
+                        VS
+                      </div>
+                    </div>
+
+                    {/* Second criteria */}
+                    <div
+                      className={`flex-1 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        selectedCriteria === currentComparison.column
+                          ? "border-indigo-500 bg-indigo-50"
+                          : "border-gray-200 hover:border-indigo-300"
+                      }`}
+                      onClick={() =>
+                        handleCriteriaSelection(currentComparison.column)
+                      }
+                    >
+                      <div className="flex items-center mb-2 space-x-3">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${getCriteriaColor(
+                            currentComparison.column
+                          )}`}
+                        >
+                          <span className="text-lg font-bold">
+                            {currentComparison.column.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="text-lg font-semibold">
+                          {currentComparison.column}
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {selectedCriteria === currentComparison.column
+                          ? "Đã chọn là quan trọng hơn"
+                          : "Chọn nếu tiêu chí này quan trọng hơn"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Importance level selection */}
+                  {showImportanceSelection && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="pt-4 border-t border-gray-100"
+                    >
+                      <h4 className="mb-3 font-medium text-gray-800">
+                        {selectedCriteria === currentComparison.row
+                          ? `${currentComparison.row} quan trọng hơn ${currentComparison.column} như thế nào?`
+                          : `${currentComparison.column} quan trọng hơn ${currentComparison.row} như thế nào?`}
                       </h4>
-                      <div className="flex flex-wrap justify-center gap-3">
-                        {COMMON_FRACTIONS.map((fraction) => (
-                          <motion.div
-                            key={fraction.value}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+
+                      <div className="grid grid-cols-2 gap-2 mb-4 md:grid-cols-3">
+                        {IMPORTANCE_LEVELS.map((level) => (
+                          <motion.button
+                            key={level.value}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() =>
+                              handleSelectImportanceLevel(level.value)
+                            }
+                            className={`py-2 px-4 rounded-lg border ${
+                              currentChoice === level.value
+                                ? "bg-indigo-100 border-indigo-400 font-medium"
+                                : "bg-white border-gray-200 hover:border-indigo-300"
+                            }`}
                           >
-                            <Button
-                              variant={
-                                currentChoice === fraction.value
-                                  ? "default"
-                                  : "outline"
-                              }
+                            <div className="mb-1 font-semibold">
+                              {level.value}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {level.label}
+                            </div>
+                          </motion.button>
+                        ))}
+                      </div>
+
+                      <div className="mb-4">
+                        <h5 className="mb-2 text-sm font-medium text-gray-700">
+                          Hoặc sử dụng các giá trị trung gian
+                        </h5>
+                        <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
+                          {COMMON_FRACTIONS.map((fraction) => (
+                            <motion.button
+                              key={fraction.value}
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.97 }}
                               onClick={() =>
                                 handleSelectImportanceLevel(fraction.value)
                               }
-                              className={`text-base h-10 ${
+                              className={`py-1.5 px-3 rounded border text-sm ${
                                 currentChoice === fraction.value
-                                  ? "bg-indigo-600 hover:bg-indigo-700"
-                                  : ""
+                                  ? "bg-indigo-100 border-indigo-400 font-medium"
+                                  : "bg-white border-gray-200 hover:border-indigo-300"
                               }`}
                             >
-                              {fraction.label}
-                            </Button>
-                          </motion.div>
-                        ))}
+                              {fraction.value}
+                            </motion.button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="mb-8">
-                      <h4 className="mb-3 text-sm font-medium text-center text-gray-500">
-                        Chọn mức độ quan trọng:
-                      </h4>
-                      <div className="flex flex-wrap justify-center gap-3">
-                        {IMPORTANCE_LEVELS.map((level) => (
-                          <motion.div
-                            key={level.value}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            <Button
-                              onClick={() =>
-                                handleSelectImportanceLevel(level.value)
-                              }
-                              className={`text-base ${
-                                currentChoice === level.value
-                                  ? "bg-indigo-600 hover:bg-indigo-700"
-                                  : ""
-                              }`}
-                              variant={
-                                currentChoice === level.value
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {level.value}
-                            </Button>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mt-8">
-                      <h4 className="mb-3 text-sm font-medium text-center text-gray-500">
-                        Hoặc nhập giá trị tùy chỉnh:
-                      </h4>
-                      <div className="flex justify-center gap-3">
-                        <Input
-                          value={customValue}
-                          onChange={handleCustomValueChange}
-                          placeholder="Nhập giá trị tùy chỉnh"
-                          className="max-w-xs bg-white"
-                        />
+                      <div className="flex items-end space-x-2">
+                        <div className="flex-grow space-y-1">
+                          <label className="text-sm font-medium text-gray-700">
+                            Hoặc nhập giá trị tùy chọn
+                          </label>
+                          <Input
+                            placeholder="Ví dụ: 3 hoặc 5/2"
+                            value={customValue}
+                            onChange={handleCustomValueChange}
+                            className="focus:border-indigo-500"
+                          />
+                        </div>
                         <Button
                           onClick={handleApplyCustomValue}
+                          size="sm"
                           variant="outline"
-                          className="bg-white hover:bg-gray-50"
+                          className="mb-px"
                         >
                           Áp dụng
                         </Button>
                       </div>
-                      <p className="mt-2 text-sm text-center text-gray-500">
-                        Có thể nhập số hoặc phân số lớn hơn 1 (ví dụ: 3, 5/2)
-                      </p>
+                    </motion.div>
+                  )}
+
+                  {/* Completed status */}
+                  {!showImportanceSelection && currentComparison.completed && (
+                    <div className="flex items-center p-4 mt-4 space-x-2 border border-green-200 rounded-lg bg-green-50">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span className="text-green-800">
+                        Đã hoàn thành so sánh này
+                      </span>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </CardContent>
 
-              <CardFooter className="flex justify-between py-4 border-t border-gray-100">
-                <Button
-                  onClick={handlePrevious}
-                  disabled={currentIndex === 0}
-                  variant="outline"
-                  className="gap-2 bg-white hover:bg-gray-50"
-                >
-                  <ChevronLeft size={16} />
-                  Trước
-                </Button>
-
-                <div className="py-2">
-                  <div className="flex space-x-1">
-                    {Array.from({
-                      length: Math.min(5, comparisons.length),
-                    }).map((_, idx) => {
-                      const actualIdx = currentIndex - 2 + idx;
-                      if (actualIdx < 0 || actualIdx >= comparisons.length)
-                        return (
-                          <span
-                            key={idx}
-                            className="w-2 h-2 bg-transparent rounded-full"
-                          ></span>
-                        );
-
-                      return (
-                        <span
-                          key={idx}
-                          className={`w-2 h-2 rounded-full ${
-                            actualIdx === currentIndex
-                              ? "bg-indigo-600"
-                              : comparisons[actualIdx]?.completed
-                              ? "bg-indigo-300"
-                              : "bg-gray-300"
-                          }`}
-                        ></span>
-                      );
-                    })}
-                  </div>
+              <CardFooter className="flex justify-between pt-4 border-t border-gray-100">
+                <div>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/custom-criteria?${searchParams}`)}
+                    className="flex items-center gap-2"
+                  >
+                    <ArrowLeft size={16} /> Quay lại
+                  </Button>
                 </div>
 
-                {!showImportanceSelection ? (
+                <div className="flex items-center space-x-2">
                   <Button
-                    disabled={!selectedCriteria}
-                    onClick={() => setShowImportanceSelection(true)}
-                    className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentIndex === 0}
+                    className="flex items-center gap-1"
                   >
-                    Tiếp tục
-                    <ChevronRight size={16} />
+                    <ChevronLeft size={16} /> Trước
                   </Button>
-                ) : (
-                  <Button
-                    onClick={handleNext}
-                    disabled={
-                      currentIndex === comparisons.length - 1 ||
-                      !comparisons[currentIndex].completed
-                    }
-                    className="gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-                  >
-                    Tiếp
-                    <ChevronRight size={16} />
-                  </Button>
-                )}
+
+                  {currentIndex < comparisons.length - 1 ? (
+                    <Button
+                      onClick={handleNext}
+                      disabled={!currentComparison.completed}
+                      className="flex items-center gap-1"
+                    >
+                      Tiếp <ChevronRight size={16} />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={!isFormValid}
+                      className="flex items-center gap-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+                    >
+                      Hoàn thành <ArrowRight size={16} />
+                    </Button>
+                  )}
+                </div>
               </CardFooter>
             </Card>
           </motion.div>
         )}
 
-{!result && (
-  <motion.div
-    variants={itemVariants}
-    className="flex flex-col items-center justify-between gap-4 mt-8 md:flex-row"
-  >
-    <Button
-      onClick={() => navigate("/criteria")}
-      variant="outline"
-      className="gap-2 pl-3 bg-white hover:bg-gray-50"
-    >
-      <ArrowLeft size={16} />
-      Quay lại các tiêu chí
-    </Button>
+        {/* Completed comparisons summary */}
+        {processingState === "idle" && completedPercentage > 0 && (
+          <motion.div variants={itemVariants} className="mt-8">
+            <h3 className="mb-3 font-medium text-gray-700">
+              So sánh đã hoàn thành
+            </h3>
 
-    {/* Thêm button test data */}
-    <Button
-      onClick={handleAutoFillTestData}
-      className="gap-2 bg-amber-500 hover:bg-amber-600"
-    >
-      <Eye className="w-4 h-4" />
-      Tự động điền dữ liệu test
-    </Button>
+            <div className="overflow-hidden bg-white border border-gray-100 rounded-lg shadow">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-5 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b border-gray-200">
+                        #
+                      </th>
+                      <th className="px-5 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b border-gray-200">
+                        Tiêu chí 1
+                      </th>
+                      <th className="px-5 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b border-gray-200">
+                        Tiêu chí 2
+                      </th>
+                      <th className="px-5 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b border-gray-200">
+                        Kết quả
+                      </th>
+                      <th className="px-5 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b border-gray-200">
+                        Thao tác
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparisons
+                      .filter((c) => c.completed)
+                      .map((comparison, index) => (
+                        <tr key={index}>
+                          <td className="px-5 py-4 text-sm border-b border-gray-100">
+                            {index + 1}
+                          </td>
+                          <td className="px-5 py-4 text-sm border-b border-gray-100">
+                            <div className="flex items-center space-x-2">
+                              <div
+                                className={`w-6 h-6 rounded-full flex items-center justify-center text-white ${getCriteriaColor(
+                                  comparison.row
+                                )}`}
+                              >
+                                <span className="text-xs font-bold">
+                                  {comparison.row.charAt(0)}
+                                </span>
+                              </div>
+                              <span>{comparison.row}</span>
+                              {comparison.selectedCriteria ===
+                                comparison.row && (
+                                <Badge className="ml-1 text-green-800 bg-green-100 border-green-200">
+                                  Quan trọng hơn
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-sm border-b border-gray-100">
+                            <div className="flex items-center space-x-2">
+                              <div
+                                className={`w-6 h-6 rounded-full flex items-center justify-center text-white ${getCriteriaColor(
+                                  comparison.column
+                                )}`}
+                              >
+                                <span className="text-xs font-bold">
+                                  {comparison.column.charAt(0)}
+                                </span>
+                              </div>
+                              <span>{comparison.column}</span>
+                              {comparison.selectedCriteria ===
+                                comparison.column && (
+                                <Badge className="ml-1 text-green-800 bg-green-100 border-green-200">
+                                  Quan trọng hơn
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-sm border-b border-gray-100">
+                            {editingValueIndex === index ? (
+                              <div className="flex items-center space-x-1">
+                                <Input
+                                  className="w-20 h-8 text-sm"
+                                  value={tempEditValue}
+                                  onChange={(e) =>
+                                    setTempEditValue(e.target.value)
+                                  }
+                                />
+                                <Button
+                                  size="sm"
+                                  className="w-8 h-8 p-0"
+                                  onClick={() => handleSaveDirectEdit(index)}
+                                >
+                                  <Save className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-8 h-8 p-0"
+                                  onClick={handleCancelDirectEdit}
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="font-medium">
+                                {getComparisonDisplayValue(comparison)}x
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-5 py-4 text-sm border-b border-gray-100">
+                            {editingValueIndex !== index && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 text-gray-500 hover:text-indigo-600"
+                                onClick={() =>
+                                  handleStartDirectEdit(index, comparison.value)
+                                }
+                              >
+                                <Edit className="w-4 h-4 mr-1" /> Sửa
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
-    {/* Thêm button dữ liệu không nhất quán */}
-    <Button
-      onClick={handleInconsistentTestData}
-      className="gap-2 bg-red-500 hover:bg-red-600"
-    >
-      <Eye className="w-4 h-4" />
-      Tự động điền dữ liệu không nhất quán
-    </Button>
-
-    <Button
-      onClick={handleSubmit}
-      className={`gap-2 ${
-        isFormValid
-          ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-          : "bg-gray-300 cursor-not-allowed"
-      }`}
-      disabled={
-        loading || isSubmitting || comparisons.some((c) => !c.completed)
-      }
-      size="lg"
-    >
-      {isSubmitting ? (
-        <>
-          <div className="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-          Đang phân tích...
-        </>
-      ) : (
-        "Hoàn thành so sánh"
-      )}
-    </Button>
-  </motion.div>
-)}
-
-        {processingState !== "idle" && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 100 }}
-            className="mb-6"
+        {/* Developer tools for testing */}
+        <div className="flex pt-6 mt-6 space-x-3 border-t border-gray-200">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAutoFillTestData}
+            className="text-xs"
           >
-            <Card className="mb-6 overflow-hidden border-none shadow-xl bg-white/90 backdrop-blur-sm">
-              <CardHeader className="pb-4 border-b border-gray-100">
-                <CardTitle className="text-center text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text">
-                  So sánh cặp tiêu chí {currentIndex + 1}/{comparisons.length}
-                </CardTitle>
-                <CardDescription className="text-center text-gray-600">
-                  {!showImportanceSelection
-                    ? "Chọn tiêu chí nào quan trọng hơn"
-                    : `Đánh giá mức độ quan trọng của ${selectedCriteria}`}
-                </CardDescription>
+            Auto-fill Test Data
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleInconsistentTestData}
+            className="text-xs text-red-500 border-red-200"
+          >
+            Test Inconsistent Data
+          </Button>
+        </div>
 
-                {/* Thêm dòng này để hiển thị criteria */}
-                {criteria.length > 0 && (
-                  <div className="hidden">Tiêu chí: {criteria.join(", ")}</div>
-                )}
-              </CardHeader>
+        {/* Review Dialog (for testing purposes) */}
+        <Dialog
+          open={showReviewDialog}
+          onOpenChange={setShowReviewDialog}
+        >
+          <DialogContent className="relative z-50 max-w-2xl p-6 mx-auto bg-white rounded-lg shadow-lg">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold text-gray-800">
+                Xem lại dữ liệu so sánh
+              </DialogTitle>
+            </DialogHeader>
 
-              <CardContent className="pt-6">
-                {processingState === "processing" && (
-                  <div className="flex flex-col items-center">
-                    <div className="w-full mb-6">
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm text-gray-500">
-                          {processingMessage}
-                        </span>
-                        <span className="text-sm font-medium text-indigo-600">
-                          {Math.round(processingProgress)}%
-                        </span>
-                      </div>
-                      <div className="w-full h-4 overflow-hidden bg-gray-100 rounded-full">
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-indigo-500 to-purple-600"
-                          initial={{ width: "0%" }}
-                          animate={{ width: `${processingProgress}%` }}
-                          transition={{ ease: "easeOut" }}
-                        />
-                      </div>
-                    </div>
+            <div className="mt-4">
+              <h4 className="mb-2 font-medium text-gray-700 text-md">
+                Dữ liệu đã điền tự động:
+              </h4>
+              <div className="overflow-hidden rounded-lg shadow bg-gray-50">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-2 text-xs font-medium text-gray-500 uppercase border-b">
+                          Tiêu chí 1
+                        </th>
+                        <th className="px-4 py-2 text-xs font-medium text-gray-500 uppercase border-b">
+                          Tiêu chí 2
+                        </th>
+                        <th className="px-4 py-2 text-xs font-medium text-gray-500 uppercase border-b">
+                          Giá trị
+                        </th>
+                        <th className="px-4 py-2 text-xs font-medium text-gray-500 uppercase border-b">
+                          Quan trọng hơn
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {comparisons.map((comparison, index) => (
+                        <tr
+                          key={index}
+                          className={
+                            comparison.completed
+                              ? "bg-green-50 hover:bg-green-100"
+                              : "hover:bg-indigo-50"
+                          }
+                        >
+                          <td className="px-4 py-3 text-sm border-b">
+                            {comparison.row}
+                          </td>
+                          <td className="px-4 py-3 text-sm border-b">
+                            {comparison.column}
+                          </td>
+                          <td className="px-4 py-3 text-sm border-b">
+                            {getComparisonDisplayValue(comparison)}x
+                          </td>
+                          <td className="px-4 py-3 text-sm border-b">
+                            {comparison.selectedCriteria === comparison.row
+                              ? "✓"
+                              : comparison.selectedCriteria === comparison.column
+                              ? "✗"
+                              : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
 
-                    <div className="grid w-full grid-cols-1 gap-6 mb-6 md:grid-cols-3">
-                      <div className="flex items-center gap-3 p-4 rounded-lg shadow-sm bg-indigo-50">
-                        <div className="p-2 bg-indigo-100 rounded-full">
-                          <Calculator className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        <div className="flex-grow">
-                          <h4 className="text-sm font-medium text-indigo-800">
-                            Phân tích dữ liệu
-                          </h4>
-                          <div className="h-1 bg-gray-200 rounded-full mt-1.5">
-                            <motion.div
-                              className="h-full bg-indigo-500 rounded-full"
-                              style={{
-                                width: processingProgress < 33 ? `${(processingProgress * 3)}%` : '100%'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                                            
-                      <div className="flex items-center gap-3 p-4 rounded-lg shadow-sm bg-violet-50">
-                        <div className="p-2 rounded-full bg-violet-100">
-                          <Scale className="w-5 h-5 text-violet-600" />
-                        </div>
-                        <div className="flex-grow">
-                          <h4 className="text-sm font-medium text-violet-800">
-                            Tính độ nhất quán
-                          </h4>
-                          <div className="h-1 bg-gray-200 rounded-full mt-1.5">
-                            <motion.div
-                              className="h-full rounded-full bg-violet-500"
-                              style={{
-                                width: processingProgress < 33 ? '0%' : 
-                                      processingProgress < 66 ? `${(processingProgress - 33) * 3}%` : 
-                                      '100%'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                                            
-                      <div className="flex items-center gap-3 p-4 rounded-lg shadow-sm bg-purple-50">
-                        <div className="p-2 bg-purple-100 rounded-full">
-                          <Loader2 className="w-5 h-5 text-purple-600" />
-                        </div>
-                        <div className="flex-grow">
-                          <h4 className="text-sm font-medium text-purple-800">
-                            Tìm laptop phù hợp
-                          </h4>
-                          <div className="h-1 bg-gray-200 rounded-full mt-1.5">
-                            <motion.div
-                              className="h-full bg-purple-500 rounded-full"
-                              style={{
-                                width: processingProgress < 66 ? '0%' : `${(processingProgress - 66) * 3}%`
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{
-                        repeat: Infinity,
-                        duration: 2,
-                        ease: "linear",
-                      }}
-                      className="p-3 mb-6 text-indigo-500 bg-indigo-100 rounded-full"
-                    >
-                      <Clock className="w-10 h-10" />
-                    </motion.div>
-
-                    <p className="max-w-lg mx-auto text-center text-gray-600">
-                      Hệ thống đang tính toán độ phù hợp của các laptop dựa trên
-                      sở thích của bạn.
-                      <br />
-                      Quá trình này sẽ hoàn thành trong giây lát...
-                    </p>
-                  </div>
-                )}
-
-                {processingState === "success" && (
-                  <div className="flex flex-col items-center">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 200,
-                        damping: 10,
-                      }}
-                      className="p-4 mb-6 bg-green-100 rounded-full"
-                    >
-                      <CheckCircle className="w-12 h-12 text-green-500" />
-                    </motion.div>
-                    <h3 className="mb-2 text-xl font-semibold text-gray-800">
-                      Phân tích hoàn tất!
-                    </h3>
-                    <p className="mb-6 text-center text-gray-600">
-                      Đã tìm được các laptop phù hợp dựa trên sở thích của bạn.
-                      <br />
-                      Đang chuyển hướng đến trang gợi ý...
-                    </p>
-
-                    <div className="flex items-center justify-center w-full gap-2 text-sm text-indigo-600">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Đang chuyển hướng...</span>
-                    </div>
-                  </div>
-                )}
-
-                {processingState === "error" && (
-                  <div className="flex flex-col items-center">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 200,
-                        damping: 10,
-                      }}
-                      className="p-4 mb-6 bg-red-100 rounded-full"
-                    >
-                      <XCircle className="w-12 h-12 text-red-500" />
-                    </motion.div>
-                    <h3 className="mb-2 text-xl font-semibold text-red-600">
-                      Có lỗi xảy ra!
-                    </h3>
-                    <p className="mb-6 text-center text-gray-700">
-                      {processingError ||
-                        "Không thể hoàn tất phân tích. Vui lòng thử lại."}
-                    </p>
-                    <Alert variant="destructive" className="mb-6">
-                      <AlertDescription>
-                        {processingError?.includes("mâu thuẫn")
-                          ? "Hệ thống phát hiện các đánh giá có sự mâu thuẫn với nhau. Ví dụ: Nếu A quan trọng hơn B, và B quan trọng hơn C, thì A phải quan trọng hơn C. Hãy xem lại các so sánh để đảm bảo tính logic."
-                          : "Đã xảy ra lỗi khi xử lý dữ liệu. Vui lòng thử lại sau."}
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )}
-              </CardContent>
-
-              <CardFooter className="flex justify-center py-6 border-t border-gray-100">
-                {processingState === "processing" ? (
-                  <p className="text-sm italic text-gray-500">
-                    Đang xử lý, vui lòng đợi...
-                  </p>
-                ) : processingState === "success" ? (
-                  <Button
-                    onClick={() => navigate("/recommendations")}
-                    className="gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-                  >
-                    <CheckCircle size={18} />
-                    Đi đến trang gợi ý laptop
-                  </Button>
-                ) : (
-                  <div className="flex gap-4">
-                    <Button
-                      onClick={() => navigate("/")}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <ArrowLeft size={16} />
-                      Quay lại trang chủ
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setProcessingState("idle");
-                        setProcessingProgress(0);
-                        setProcessingError(null);
-                      }}
-                      className="gap-2 bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      <Scale size={16} />
-                      Thử so sánh lại
-                    </Button>
-                  </div>
-                )}
-              </CardFooter>
-            </Card>
-          </motion.div>
-        )}
+            <DialogFooter className="flex justify-end gap-2 mt-4">
+              <Button
+                onClick={() => setShowReviewDialog(false)}
+                variant="outline"
+                className="text-gray-700"
+              >
+                Đóng
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </motion.div>
   );
