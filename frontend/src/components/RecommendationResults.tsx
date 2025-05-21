@@ -10,12 +10,9 @@ import {
   Battery,
   Palette, 
   Shield,
-  ChevronLeft,
-  ThumbsUp,
   Share,
   RefreshCw,
   Info,
-  ArrowLeft,
   Database,
   Weight,
 } from 'lucide-react';
@@ -263,7 +260,7 @@ function RecommendationResults() {
                 <CardDescription>Mức độ quan trọng của từng tiêu chí trong đánh giá</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {sortedCriteria.map(([criterion, weight], index) => {
+                {sortedCriteria.map(([criterion, weight], _index) => {
                   const Icon = CRITERIA_ICONS[criterion as CriterionKey] || Info;
                   const weightPercent = (weight * 100).toFixed(1);
                   
