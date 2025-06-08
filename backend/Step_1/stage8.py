@@ -65,6 +65,9 @@ def calculate_consistency_ratio(stage7_result: Dict[str, Any]) -> Dict[str, Any]
         
         # Tính CR
         CR = CI / RI if RI > 0 else 0
+
+        # Log giá trị CR
+        print(f"DEBUG: Consistency Ratio (CR) = {CR:.4f}")
         
         # Đánh giá nhất quán
         is_consistent = CR < 0.1

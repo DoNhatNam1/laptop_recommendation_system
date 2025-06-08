@@ -1,37 +1,52 @@
-import numpy as np
+from typing import Dict, Any
 import traceback
-from typing import Dict, Any, List
+import numpy as np
+
+def log_matrix(stage_name, matrix_name, matrix_data):
+    """Log ma trận với định dạng dễ đọc"""
+    print(f"\n[{stage_name}] Ma trận {matrix_name}:")
+    
+    if isinstance(matrix_data, np.ndarray):
+        for row in matrix_data:
+            print(f"  {row}")
+    elif isinstance(matrix_data, list):
+        for row in matrix_data:
+            print(f"  {row}")
+    else:
+        print(f"  Không phải ma trận: {type(matrix_data)}")
+        try:
+            print(f"  Giá trị: {matrix_data}")
+        except:
+            print("  Không thể in giá trị")
 
 def calculate_final_scores(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Calculate final scores and ranking of laptops
+    Tính điểm xếp hạng cuối cùng cho các laptop
     
     Args:
-        input_data: Results from stage7 with priority vectors and consistency check
+        input_data: Kết quả từ stage7 với priority vectors và trọng số tiêu chí
         
     Returns:
-        Dictionary containing final scores and rankings
+        Dictionary chứa laptop đã xếp hạng
     """
     try:
-        print("\n=== STAGE 8: CALCULATE FINAL SCORES AND RANKINGS ===")
+        print("\n=== STAGE 8: CALCULATE FINAL SCORES ===")
         
-        # Extract data from previous stages
+        # Log để kiểm tra dữ liệu đầu vào
+        print(f"[STAGE 8] INPUT KEYS: {list(input_data.keys())}")
+        print(f"[STAGE 8] Has alternative_priority_tables: {bool(input_data.get('alternative_priority_tables'))}")
+        print(f"[STAGE 8] Has criteria_priority_tables: {bool(input_data.get('criteria_priority_tables'))}")
+        print(f"[STAGE 8] Has consistency_vectors: {bool(input_data.get('consistency_vectors'))}")
+        
+        # Extract data from stage7
         priority_vectors = input_data.get("priority_vectors", {})
         criteria_weights = input_data.get("criteria_weights", {})
         laptop_names = input_data.get("laptop_names", [])
         laptop_ids = input_data.get("laptop_ids", [])
-        laptops = input_data.get("laptops", [])
         laptop_details = input_data.get("laptop_details", {})
+        laptops = input_data.get("laptops", [])
+        laptop_count = len(laptop_names)
         
-        # Check required data
-        if not priority_vectors or not criteria_weights:
-            print("ERROR: Missing required data from previous stages")
-            return {
-                "status": "error",
-                "message": "Không nhận được vector ưu tiên hoặc trọng số tiêu chí từ các giai đoạn trước"
-            }
-        
-        # Log input summary
         print(f"Calculating final scores for {len(laptop_names)} laptops")
         print(f"Using {len(priority_vectors)} priority vectors and {len(criteria_weights)} criteria weights")
         
@@ -41,100 +56,99 @@ def calculate_final_scores(input_data: Dict[str, Any]) -> Dict[str, Any]:
             laptop_index_to_id[i] = laptop_id
         
         # Initialize arrays for calculation
-        laptop_count = len(laptop_names)
-        final_scores = np.zeros(laptop_count)
+        final_scores = [0] * laptop_count
         
         # Calculate weighted sum of priority vectors
         for criterion, weight in criteria_weights.items():
             # Skip if criterion not in priority vectors
             if criterion not in priority_vectors:
-                print(f"WARNING: No priority vector for {criterion}, skipping")
+                print(f"WARNING: Criterion '{criterion}' not found in priority vectors, skipping")
                 continue
-                
-            # Get priority vector
+            
+            # Get priority vector for this criterion
             priority = priority_vectors[criterion]
             
-            # Convert to numpy array if needed
-            if not isinstance(priority, np.ndarray):
-                priority = np.array(priority, dtype=float)
-                
-            # If lengths don't match, skip
-            if len(priority) != laptop_count:
-                print(f"WARNING: Priority vector length mismatch for {criterion}, skipping")
-                continue
-                
-            # Add weighted priority to final scores
-            final_scores += priority * weight
-        
-        # Create result list with scores
-        result_laptops = []
-        
-        for i in range(laptop_count):
-            laptop_id = laptop_index_to_id.get(i)
+            # Apply weight and add to final scores
+            for i in range(laptop_count):
+                if i < len(priority):
+                    final_scores[i] += priority[i] * weight
             
-            # Skip if no ID (shouldn't happen)
-            if not laptop_id:
-                continue
-                
+            print(f"Criterion {criterion} (weight={weight:.4f}): {[round(p, 4) for p in priority]}")
+            print(f"Weighted: {[round(p * weight, 4) for p in priority]}")
+        
+        print(f"\nFinal scores: {[round(score, 6) for score in final_scores]}")
+        
+        # Create ranked laptop list
+        ranked_laptops = []
+        for i, score in enumerate(final_scores):
+            laptop_id = laptop_index_to_id.get(i, f"laptop-{i}")
+            laptop_name = laptop_names[i] if i < len(laptop_names) else f"Laptop {i+1}"
+            
             # Get laptop details
-            laptop = {}
+            details = {}
+            if laptop_id in laptop_details:
+                details = laptop_details[laptop_id]
+            elif i < len(laptops):
+                details = laptops[i]
             
-            # Find the laptop in the original laptops list
-            for l in laptops:
-                if str(l.get("id")) == str(laptop_id):
-                    laptop = l
-                    break
-                    
-            # Create result entry with only original laptop properties
-            # (removing derived scores as requested)
-            result_entry = {
+            # Create laptop object with all details and score
+            laptop = {
                 "id": laptop_id,
-                "name": laptop_names[i] if i < len(laptop_names) else f"Laptop {i+1}",
-                "score": float(final_scores[i]),
-                # Include only original laptop properties
-                "price": laptop.get("price"),
-                "cpu": laptop.get("cpu"),
-                "ram": laptop.get("ram"),
-                "storage": laptop.get("storage"),
-                "gpu": laptop.get("gpu"),
-                "screen_size": laptop.get("screen_size"),
-                "screen": laptop.get("screen"),
-                "screen_name": laptop.get("screen_name"),
-                "battery": laptop.get("battery"),
-                "weight": laptop.get("weight"),
-                "usage": laptop.get("usage"),
-                "design": laptop.get("design"),
-                "performance": laptop.get("performance")
+                "name": laptop_name,
+                "score": float(score),  # Convert to Python float for JSON
+                "rank": 0  # Will be set after sorting
             }
             
-            # Remove None values
-            result_entry = {k: v for k, v in result_entry.items() if v is not None}
+            # Add all details from the original laptop object
+            if details:
+                for key, value in details.items():
+                    if key not in laptop:
+                        laptop[key] = value
             
-            result_laptops.append(result_entry)
+            ranked_laptops.append(laptop)
         
-        # Sort by score (descending)
-        result_laptops.sort(key=lambda x: x["score"], reverse=True)
+        # Sort laptops by score (descending)
+        ranked_laptops.sort(key=lambda x: x["score"], reverse=True)
         
-        # Add ranks
-        for i, laptop in enumerate(result_laptops):
+        # Assign ranks
+        for i, laptop in enumerate(ranked_laptops):
             laptop["rank"] = i + 1
         
-        # Log top 3 laptops
-        print("\nTop 3 laptops:")
-        for laptop in result_laptops[:min(3, len(result_laptops))]:
-            print(f"  {laptop['rank']}. {laptop['name']} - Score: {laptop['score']:.4f}")
-        
-        # Create the final result
+        # Create result structure
         result = {
             "status": "success",
             "stage": "stage8",
             "message": "Laptop ranking completed successfully",
-            "ranked_laptops": result_laptops,
-            "laptop_count": len(result_laptops),
-            "criteria_weights": criteria_weights
+            "ranked_laptops": ranked_laptops,
+            "laptop_count": len(ranked_laptops),
+            
+            # Include all previous data
+            "alternative_priority_tables": input_data.get("alternative_priority_tables", {}),
+            "column_sums": input_data.get("column_sums", {}),
+            "normalized_matrices": input_data.get("normalized_matrices", {}),
+            
+            # Thêm dữ liệu nhất quán
+            "lambda_max": input_data.get("lambda_max", {}),
+            "consistency_vectors": input_data.get("consistency_vectors", {}),
+            "ci_values": input_data.get("ci_values", {}),
+            "cr_results": input_data.get("cr_results", {}),
+            "consistency_status": input_data.get("consistency_status", {}),
+            "ri_values": input_data.get("ri_values", {})
         }
         
-        print(f"\nStage 8 completed: Ranked {len(result_laptops)} laptops")
+        # Đảm bảo giữ lại tất cả dữ liệu quan trọng từ các stage trước
+        important_keys = [
+            "criteria_priority_tables",
+            "original_matrices",
+        ]
+        
+        for key in important_keys:
+            if key in input_data and key not in result:
+                result[key] = input_data[key]
+                print(f"[STAGE 8] Giữ lại dữ liệu quan trọng: {key}")
+        
+        print(f"\nStage 8 completed: Ranked {len(result['ranked_laptops'])} laptops")
+        print(f"[STAGE 8] OUTPUT KEYS: {list(result.keys())}")
         
         return result
         
@@ -143,5 +157,6 @@ def calculate_final_scores(input_data: Dict[str, Any]) -> Dict[str, Any]:
         traceback.print_exc()
         return {
             "status": "error",
-            "message": f"Lỗi khi tính điểm xếp hạng: {str(e)}"
+            "message": f"Error calculating final scores: {str(e)}",
+            "ranked_laptops": [] 
         }

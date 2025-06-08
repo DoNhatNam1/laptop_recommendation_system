@@ -1,0 +1,111 @@
+### Đánh giá laptop gaming - THỦ CÔNG (so sánh 3 laptop cao cấp)
+POST http://localhost:5000/api/evaluate-laptops
+Content-Type: application/json
+
+{
+  "criteria_weights": {
+    "Hiệu năng": 0.623,
+    "Giá": 0.089,
+    "Màn hình": 0.142,
+    "Pin": 0.045,
+    "Thiết kế": 0.073,
+    "Độ bền": 0.028
+  },
+  "filtered_laptops": [
+    {
+      "battery": 42000,
+      "build_quality": "premium",
+      "cpu": "Intel Core i9-13900H",
+      "design": "gaming",
+      "gpu": "RTX 4070 8GB",
+      "id": "msi-stealth-16-076",
+      "name": "MSI Stealth 16",
+      "performance": "extreme",
+      "price": 45500000,
+      "ram": "32GB DDR5",
+      "screen": "16.0",
+      "screen_name": "16\" QHD+ OLED 240Hz",
+      "storage": "1TB SSD",
+      "usage": "gaming"
+    },
+    {
+      "battery": 38000,
+      "build_quality": "premium",
+      "cpu": "Intel Core i9-14900H",
+      "design": "gaming",
+      "gpu": "RTX 4070 8GB",
+      "id": "asus-rog-zephyrus-g16-062",
+      "name": "Asus ROG Zephyrus G16",
+      "performance": "extreme",
+      "price": 45800000,
+      "ram": "32GB DDR5",
+      "screen": "16.0",
+      "screen_name": "16\" QHD+ 240Hz OLED",
+      "storage": "1TB SSD",
+      "usage": "gaming"
+    },
+    {
+      "battery": 40000,
+      "build_quality": "high",
+      "cpu": "AMD Ryzen 9 7940HS",
+      "design": "gaming",
+      "gpu": "RTX 4060 8GB",
+      "id": "lenovo-legion-slim-7-066",
+      "name": "Lenovo Legion Slim 7",
+      "performance": "extreme",
+      "price": 36900000,
+      "ram": "32GB DDR5",
+      "screen": "16.0",
+      "screen_name": "16\" WQXGA 240Hz",
+      "storage": "1TB SSD",
+      "usage": "gaming"
+    }
+  ],
+  "evaluationMethod": "manual",
+  "selectedLaptops": [
+    {
+      "id": "msi-stealth-16-076",
+      "name": "MSI Stealth 16"
+    },
+    {
+      "id": "asus-rog-zephyrus-g16-062",
+      "name": "Asus ROG Zephyrus G16"
+    },
+    {
+      "id": "lenovo-legion-slim-7-066",
+      "name": "Lenovo Legion Slim 7"
+    }
+  ],
+  "laptopComparisons": {
+    "Hiệu năng": [
+      { "row": "MSI Stealth 16", "column": "Asus ROG Zephyrus G16", "value": "1/2" },
+      { "row": "MSI Stealth 16", "column": "Lenovo Legion Slim 7", "value": "5/4" },
+      { "row": "Asus ROG Zephyrus G16", "column": "Lenovo Legion Slim 7", "value": "9/5" }
+    ],
+    "Giá": [
+      { "row": "MSI Stealth 16", "column": "Asus ROG Zephyrus G16", "value": "6/5" },
+      { "row": "MSI Stealth 16", "column": "Lenovo Legion Slim 7", "value": "3/5" },
+      { "row": "Asus ROG Zephyrus G16", "column": "Lenovo Legion Slim 7", "value": "3/5" }
+    ],
+    "Màn hình": [
+      { "row": "MSI Stealth 16", "column": "Asus ROG Zephyrus G16", "value": "1/1" },
+      { "row": "MSI Stealth 16", "column": "Lenovo Legion Slim 7", "value": "5/4" },
+      { "row": "Asus ROG Zephyrus G16", "column": "Lenovo Legion Slim 7", "value": "5/4" }
+    ],
+    "Pin": [
+      { "row": "MSI Stealth 16", "column": "Asus ROG Zephyrus G16", "value": "6/5" },
+      { "row": "MSI Stealth 16", "column": "Lenovo Legion Slim 7", "value": "6/5" },
+      { "row": "Asus ROG Zephyrus G16", "column": "Lenovo Legion Slim 7", "value": "5/6" }
+    ],
+    "Thiết kế": [
+      { "row": "MSI Stealth 16", "column": "Asus ROG Zephyrus G16", "value": "1/2" },
+      { "row": "MSI Stealth 16", "column": "Lenovo Legion Slim 7", "value": "1/1" },
+      { "row": "Asus ROG Zephyrus G16", "column": "Lenovo Legion Slim 7", "value": "2/1" }
+    ],
+    "Độ bền": [
+      { "row": "MSI Stealth 16", "column": "Asus ROG Zephyrus G16", "value": "1/1" },
+      { "row": "MSI Stealth 16", "column": "Lenovo Legion Slim 7", "value": "6/5" },
+      { "row": "Asus ROG Zephyrus G16", "column": "Lenovo Legion Slim 7", "value": "6/5" }
+    ]
+  }
+}

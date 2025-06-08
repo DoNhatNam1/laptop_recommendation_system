@@ -151,7 +151,7 @@ function CriteriaSelection() {
   const getPerformanceValue = (perfSelection: string | null): string => {
     switch (perfSelection) {
       case "gaming":
-        return "powerful";
+        return "extreme";
       case "office":
         return "smooth";
       default:

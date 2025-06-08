@@ -1,0 +1,298 @@
+### Đánh giá laptop văn phòng - TỰ ĐỘNG (Ưu tiên hiệu năng)
+POST http://localhost:5000/api/evaluate-laptops
+Content-Type: application/json
+
+{
+  "criteria_weights": {
+    "Hiệu năng": 0.346,
+    "Giá": 0.213,
+    "Màn hình": 0.164,
+    "Pin": 0.134,
+    "Thiết kế": 0.075,
+    "Độ bền": 0.068
+  },
+  "filtered_laptops": [
+    {
+      "battery": 32000,
+      "build_quality": "medium",
+      "cpu": "AMD Ryzen 5 7535U",
+      "design": "lightweight",
+      "gpu": "AMD Radeon Graphics",
+      "id": "lenovo-ideapad-003",
+      "name": "Lenovo IdeaPad 5",
+      "performance": "smooth",
+      "price": 15800000,
+      "ram": "16GB DDR4",
+      "screen": "14.0",
+      "screen_name": "14\" FHD IPS",
+      "storage": "512GB SSD",
+      "usage": "office"
+    },
+    {
+      "battery": 28000,
+      "build_quality": "medium",
+      "cpu": "Intel Core i5-1240P",
+      "design": "lightweight",
+      "gpu": "Intel Iris Xe Graphics",
+      "id": "asus-vivobook-004",
+      "name": "Asus VivoBook 14 OLED",
+      "performance": "smooth",
+      "price": 17500000,
+      "ram": "16GB DDR4",
+      "screen": "14.0",
+      "screen_name": "14.0\" FHD OLED",
+      "storage": "512GB SSD",
+      "usage": "office"
+    },
+    {
+      "battery": 35000,
+      "build_quality": "high",
+      "cpu": "Intel Core i5-1245U",
+      "design": "lightweight",
+      "gpu": "Intel Iris Xe Graphics",
+      "id": "dell-inspiron-005",
+      "name": "Dell Inspiron 14",
+      "performance": "smooth",
+      "price": 18900000,
+      "ram": "16GB DDR5",
+      "screen": "14.0",
+      "screen_name": "14\" FHD+ 16:10",
+      "storage": "512GB SSD",
+      "usage": "office"
+    },
+    {
+      "battery": 45000,
+      "build_quality": "high",
+      "cpu": "Intel Core i5-1240P",
+      "design": "lightweight",
+      "gpu": "Intel Iris Xe Graphics",
+      "id": "lenovo-thinkbook-14-043",
+      "name": "Lenovo ThinkBook 14",
+      "performance": "smooth",
+      "price": 17500000,
+      "ram": "16GB DDR4",
+      "screen": "14.0",
+      "screen_name": "14\" FHD IPS",
+      "storage": "512GB SSD",
+      "usage": "office"
+    },
+    {
+      "battery": 47000,
+      "build_quality": "medium",
+      "cpu": "AMD Ryzen 7 7730U",
+      "design": "lightweight",
+      "gpu": "AMD Radeon Graphics",
+      "id": "lenovo-ideapad-slim-5-149",
+      "name": "Lenovo IdeaPad Slim 5",
+      "performance": "smooth",
+      "price": 17900000,
+      "ram": "16GB LPDDR5",
+      "screen": "14.0",
+      "screen_name": "14\" FHD IPS",
+      "storage": "512GB SSD",
+      "usage": "office"
+    }
+  ],
+  "evaluationMethod": "auto"
+}
+
+### Đánh giá laptop văn phòng - TỰ ĐỘNG (Ưu tiên giá và pin)
+POST http://localhost:5000/api/evaluate-laptops
+Content-Type: application/json
+
+{
+  "criteria_weights": {
+    "Hiệu năng": 0.220,
+    "Giá": 0.356,
+    "Màn hình": 0.134,
+    "Pin": 0.156,
+    "Thiết kế": 0.072,
+    "Độ bền": 0.062
+  },
+  "filtered_laptops": [
+    {
+      "battery": 32000,
+      "build_quality": "medium",
+      "cpu": "AMD Ryzen 5 7535U",
+      "design": "lightweight",
+      "gpu": "AMD Radeon Graphics",
+      "id": "lenovo-ideapad-003",
+      "name": "Lenovo IdeaPad 5",
+      "performance": "smooth",
+      "price": 15800000,
+      "ram": "16GB DDR4",
+      "screen": "14.0",
+      "screen_name": "14\" FHD IPS",
+      "storage": "512GB SSD",
+      "usage": "office"
+    },
+    {
+      "battery": 28000,
+      "build_quality": "medium",
+      "cpu": "Intel Core i5-1240P",
+      "design": "lightweight",
+      "gpu": "Intel Iris Xe Graphics",
+      "id": "asus-vivobook-004",
+      "name": "Asus VivoBook 14 OLED",
+      "performance": "smooth",
+      "price": 17500000,
+      "ram": "16GB DDR4",
+      "screen": "14.0",
+      "screen_name": "14.0\" FHD OLED",
+      "storage": "512GB SSD",
+      "usage": "office"
+    },
+    {
+      "battery": 35000,
+      "build_quality": "high",
+      "cpu": "Intel Core i5-1245U",
+      "design": "lightweight",
+      "gpu": "Intel Iris Xe Graphics",
+      "id": "dell-inspiron-005",
+      "name": "Dell Inspiron 14",
+      "performance": "smooth",
+      "price": 18900000,
+      "ram": "16GB DDR5",
+      "screen": "14.0",
+      "screen_name": "14\" FHD+ 16:10",
+      "storage": "512GB SSD",
+      "usage": "office"
+    },
+    {
+      "battery": 45000,
+      "build_quality": "high",
+      "cpu": "Intel Core i5-1240P",
+      "design": "lightweight",
+      "gpu": "Intel Iris Xe Graphics",
+      "id": "lenovo-thinkbook-14-043",
+      "name": "Lenovo ThinkBook 14",
+      "performance": "smooth",
+      "price": 17500000,
+      "ram": "16GB DDR4",
+      "screen": "14.0",
+      "screen_name": "14\" FHD IPS",
+      "storage": "512GB SSD",
+      "usage": "office"
+    },
+    {
+      "battery": 47000,
+      "build_quality": "medium",
+      "cpu": "AMD Ryzen 7 7730U",
+      "design": "lightweight",
+      "gpu": "AMD Radeon Graphics",
+      "id": "lenovo-ideapad-slim-5-149",
+      "name": "Lenovo IdeaPad Slim 5",
+      "performance": "smooth",
+      "price": 17900000,
+      "ram": "16GB LPDDR5",
+      "screen": "14.0",
+      "screen_name": "14\" FHD IPS",
+      "storage": "512GB SSD",
+      "usage": "office"
+    }
+  ],
+  "evaluationMethod": "auto"
+}
+
+### Đánh giá laptop văn phòng - THỦ CÔNG (so sánh 3 laptop hàng đầu)
+POST http://localhost:5000/api/evaluate-laptops
+Content-Type: application/json
+
+{
+  "criteria_weights": {
+    "Hiệu năng": 0.346,
+    "Giá": 0.213,
+    "Màn hình": 0.164,
+    "Pin": 0.134,
+    "Thiết kế": 0.075,
+    "Độ bền": 0.068
+  },
+  "filtered_laptops": [
+    {
+      "id": "lenovo-ideapad-003",
+      "name": "Lenovo IdeaPad 5",
+      "price": 15800000,
+      "cpu": "AMD Ryzen 5 7535U",
+      "ram": "16GB DDR4",
+      "storage": "512GB SSD",
+      "screen_size": 14.0,
+      "battery": 32000,
+      "weight": 1.38,
+      "design": "lightweight",
+      "build_quality": "medium"
+    },
+    {
+      "id": "asus-vivobook-004",
+      "name": "Asus VivoBook 14 OLED",
+      "price": 17500000,
+      "cpu": "Intel Core i5-1240P",
+      "ram": "16GB DDR4",
+      "storage": "512GB SSD",
+      "screen_size": 14.0,
+      "battery": 28000,
+      "weight": 1.4,
+      "design": "lightweight",
+      "build_quality": "medium"
+    },
+    {
+      "id": "dell-inspiron-005",
+      "name": "Dell Inspiron 14",
+      "price": 18900000,
+      "cpu": "Intel Core i5-1245U",
+      "ram": "16GB DDR5",
+      "storage": "512GB SSD",
+      "screen_size": 14.0,
+      "battery": 35000,
+      "weight": 1.55,
+      "design": "lightweight",
+      "build_quality": "high"
+    }
+  ],
+  "evaluationMethod": "manual",
+  "selectedLaptops": [
+    {
+      "id": "lenovo-ideapad-003",
+      "name": "Lenovo IdeaPad 5"
+    },
+    {
+      "id": "asus-vivobook-004",
+      "name": "Asus VivoBook 14 OLED" 
+    },
+    {
+      "id": "dell-inspiron-005",
+      "name": "Dell Inspiron 14"
+    }
+  ],
+  "laptopComparisons": {
+    "Hiệu năng": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": 1 },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": "1/2" },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": "1/2" }
+    ],
+    "Giá": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": 2 },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": 3 },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": "3/2" }
+    ],
+    "Màn hình": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": "1/2" },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": 1 },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": 2 }
+    ],
+    "Pin": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": 2 },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": "1/2" },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": "1/4" }
+    ],
+    "Thiết kế": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": 1 },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": "1/2" },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": "1/2" }
+    ],
+    "Độ bền": [
+      { "row": "Lenovo IdeaPad 5", "column": "Asus VivoBook 14 OLED", "value": 1 },
+      { "row": "Lenovo IdeaPad 5", "column": "Dell Inspiron 14", "value": "1/2" },
+      { "row": "Asus VivoBook 14 OLED", "column": "Dell Inspiron 14", "value": "1/2" }
+    ]
+  }
+}

@@ -1,0 +1,71 @@
+### Mobility với ma trận so sánh ưu tiên Pin và Thiết kế
+POST http://localhost:5000/api/process-comparisons
+Content-Type: application/json
+
+{
+  "usage": "mobility",
+  "fromBudget": 25000000,
+  "toBudget": 45000000,
+  "performance": "advanced",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14,
+  "build_quality": "high",
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": "3/2" },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": 2 },
+    { "row": "Hiệu năng", "column": "Pin", "value": "2/5" },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": "1/2" },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": 3 },
+    { "row": "Giá", "column": "Màn hình", "value": "4/3" },
+    { "row": "Giá", "column": "Pin", "value": "1/3" },
+    { "row": "Giá", "column": "Thiết kế", "value": "1/2" },
+    { "row": "Giá", "column": "Độ bền", "value": 2 },
+    { "row": "Màn hình", "column": "Pin", "value": "1/4" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "1/3" },
+    { "row": "Màn hình", "column": "Độ bền", "value": "3/2" },
+    { "row": "Pin", "column": "Thiết kế", "value": "7/5" },
+    { "row": "Pin", "column": "Độ bền", "value": 5 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": 4 }
+  ]
+}
+
+### Mobility với ma trận so sánh ưu tiên mạnh Thiết kế và Pin
+POST http://localhost:5000/api/process-comparisons
+Content-Type: application/json
+
+{
+  "usage": "mobility",
+  "fromBudget": 30000000,
+  "toBudget": 50000000,
+  "performance": "advanced",
+  "design": "premium",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.5,
+  "build_quality": "premium",
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": "4/3" },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": 2 },
+    { "row": "Hiệu năng", "column": "Pin", "value": "1/3" },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": "1/4" },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": 2 },
+    { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+    { "row": "Giá", "column": "Pin", "value": "1/4" },
+    { "row": "Giá", "column": "Thiết kế", "value": "1/5" },
+    { "row": "Giá", "column": "Độ bền", "value": "3/2" },
+    { "row": "Màn hình", "column": "Pin", "value": "1/5" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "1/6" },
+    { "row": "Màn hình", "column": "Độ bền", "value": 1 },
+    { "row": "Pin", "column": "Thiết kế", "value": "3/4" },
+    { "row": "Pin", "column": "Độ bền", "value": 4 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": 5 }
+  ]
+}
+
+### API PHỤ TRỢ - LỌC LAPTOP
+
+### Lấy danh sách laptop di động siêu nhẹ (mở rộng)
+GET http://localhost:5000/api/laptops-by-usage?usage=mobility&fromBudget=15000000&toBudget=35000000&performance=smooth&design=lightweight&fromScreenSize=12&toScreenSize=14
+
+### Lấy danh sách laptop di động cao cấp
+GET http://localhost:5000/api/laptops-by-usage?usage=mobility&fromBudget=35000000&toBudget=60000000&performance=advanced&design=premium&fromScreenSize=13&toScreenSize=14

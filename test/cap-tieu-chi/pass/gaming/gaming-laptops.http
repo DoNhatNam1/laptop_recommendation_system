@@ -1,0 +1,71 @@
+### Gaming với ma trận so sánh ưu tiên tuyệt đối Hiệu năng
+POST http://localhost:5000/api/process-comparisons
+Content-Type: application/json
+
+{
+  "usage": "gaming",
+  "fromBudget": 30000000,
+  "toBudget": 50000000,
+  "performance": "extreme",
+  "design": "gaming",
+  "fromScreenSize": 15.6,
+  "toScreenSize": 17.3,
+  "build_quality": "high",
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 7 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": 4 },
+    { "row": "Hiệu năng", "column": "Pin", "value": 9 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 8 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": 9 },
+    { "row": "Giá", "column": "Màn hình", "value": "1/2" },
+    { "row": "Giá", "column": "Pin", "value": 2 },
+    { "row": "Giá", "column": "Thiết kế", "value": "3/2" },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": 4 },
+    { "row": "Màn hình", "column": "Thiết kế", "value": 2 },
+    { "row": "Màn hình", "column": "Độ bền", "value": 5 },
+    { "row": "Pin", "column": "Thiết kế", "value": "1/2" },
+    { "row": "Pin", "column": "Độ bền", "value": "3/2" },
+    { "row": "Thiết kế", "column": "Độ bền", "value": 2 }
+  ]
+}
+
+### Gaming với ma trận so sánh ưu tiên Hiệu năng và Màn hình
+POST http://localhost:5000/api/process-comparisons
+Content-Type: application/json
+
+{
+  "usage": "gaming",
+  "fromBudget": 25000000,
+  "toBudget": 40000000,
+  "performance": "advanced",
+  "design": "premium",
+  "fromScreenSize": 14,
+  "toScreenSize": 16,
+  "build_quality": "high",
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": 5 },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "5/3" },
+    { "row": "Hiệu năng", "column": "Pin", "value": 7 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 6 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": 8 },
+    { "row": "Giá", "column": "Màn hình", "value": "1/3" },
+    { "row": "Giá", "column": "Pin", "value": 2 },
+    { "row": "Giá", "column": "Thiết kế", "value": "3/2" },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": 5 },
+    { "row": "Màn hình", "column": "Thiết kế", "value": 4 },
+    { "row": "Màn hình", "column": "Độ bền", "value": 6 },
+    { "row": "Pin", "column": "Thiết kế", "value": "3/4" },
+    { "row": "Pin", "column": "Độ bền", "value": "3/2" },
+    { "row": "Thiết kế", "column": "Độ bền", "value": 2 }
+  ]
+}
+
+### API PHỤ TRỢ - LỌC LAPTOP
+
+### Lấy danh sách laptop gaming tầm trung
+GET http://localhost:5000/api/laptops-by-usage?usage=gaming&fromBudget=20000000&toBudget=30000000&performance=advanced&design=gaming&fromScreenSize=15.6&toScreenSize=17.3
+
+### Lấy danh sách laptop gaming cao cấp
+GET http://localhost:5000/api/laptops-by-usage?usage=gaming&fromBudget=40000000&toBudget=70000000&performance=extreme&design=gaming&fromScreenSize=15.6&toScreenSize=17.3

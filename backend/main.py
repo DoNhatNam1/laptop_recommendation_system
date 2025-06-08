@@ -33,12 +33,11 @@ from Step_1 import (
 
 # Import Step 2 modules
 from Step_2 import (
-    filter_laptops, 
     build_comparison_matrices, 
     calculate_criteria_totals,
     normalize_comparison_matrices, 
-    calculate_criteria_weights,
-    calculate_lambda_max as step2_calculate_lambda_max, 
+    calculate_alternative_priorities,
+    step2_calculate_lambda_max, 
     check_consistency_ratio, 
     calculate_final_scores
 )
@@ -258,7 +257,7 @@ def process_comparisons_endpoint():
 
 @app.route('/api/evaluate-laptops', methods=['POST'])
 def evaluate_laptops_endpoint():
-    """Evaluate laptops directly"""
+    """Evaluate laptops directly with detailed AHP output"""
     try:
         # Get data from request
         data = request.json
@@ -305,19 +304,19 @@ def evaluate_laptops_endpoint():
         if normalize_result.get("status") == "error":
             return jsonify(normalize_result), 400
             
-        # Stage 4: Calculate weights
-        print("Stage 4: Calculating criteria weights")
-        weights_result = calculate_criteria_weights(normalize_result)
-        if weights_result.get("status") == "error":
-            return jsonify(weights_result), 400
+        # Stage 4: Calculate alternative priorities by criteria
+        print("Stage 4: Calculating alternative priorities by criteria")
+        priorities_result = calculate_alternative_priorities(normalize_result)
+        if priorities_result.get("status") == "error":
+            return jsonify(priorities_result), 400
             
         # Stage 5: Calculate Lambda Max
         print("Stage 5: Calculating lambda max")
-        lambda_result = step2_calculate_lambda_max(weights_result)
+        lambda_result = step2_calculate_lambda_max(priorities_result)
         if lambda_result.get("status") == "error":
             return jsonify(lambda_result), 400
             
-        # Stage 6: Check consistency
+        # Stage 6: Check consistency ratio
         print("Stage 6: Checking consistency ratio")
         consistency_result = check_consistency_ratio(lambda_result)
         if consistency_result.get("status") == "error":
@@ -326,9 +325,15 @@ def evaluate_laptops_endpoint():
         # Stage 7: Calculate final scores and ranking
         print("Stage 7: Calculating final scores")
         final_result = calculate_final_scores(consistency_result)
+        if final_result.get("status") == "error":
+            return jsonify(final_result), 400
+            
+        # Stage 8: Enhance output for final presentation
+        print("Stage 8: Enhancing output for presentation")
+        final_enhanced_result = enhance_ahp_output(final_result)
         
-        # Return the final result
-        return jsonify(final_result)
+        # Trả về kết quả đã được tăng cường từ stage 8
+        return jsonify(final_enhanced_result)
         
     except Exception as e:
         print(f"Error evaluating laptops: {str(e)}")
@@ -338,19 +343,69 @@ def evaluate_laptops_endpoint():
             "message": f"Error evaluating laptops: {str(e)}"
         }), 500
 
+def enhance_ahp_output(result):
+    """
+    Enhance the AHP output with detailed matrices, consistency measures, etc.
+    """
+    try:
+        # Log để kiểm tra
+        print(f"[ENHANCE OUTPUT] result keys: {list(result.keys())}")
+        print(f"[ENHANCE OUTPUT] lambda_max available: {bool(result.get('lambda_max'))}")
+        print(f"[ENHANCE OUTPUT] ci_values available: {bool(result.get('ci_values'))}")
+        print(f"[ENHANCE OUTPUT] cr_results available: {bool(result.get('cr_results'))}")
+        
+        # Tạo kết quả tăng cường
+        enhanced = {
+            # Kết quả cơ bản
+            "status": result.get("status", "success"),
+            "stage": "stage8",
+            "message": result.get("message", "Laptop ranking completed successfully"),
+            "laptop_count": len(result.get("ranked_laptops", [])),
+            "ranked_laptops": result.get("ranked_laptops", []),
+            
+            # Trọng số và ma trận
+            "alternative_priority_tables": result.get("alternative_priority_tables", {}),
+            "original_matrices": result.get("original_matrices", {}),
+            "column_sums": result.get("column_sums", {}),
+            "normalized_matrices": result.get("normalized_matrices", {}),
+            
+            # Thông tin nhất quán - COPY TRỰC TIẾP
+            "alternatives_consistency": {}
+        }
+        
+        # Tạo alternatives_consistency từ dữ liệu có sẵn
+        if result.get("lambda_max") and result.get("ci_values") and result.get("cr_results"):
+            for criterion in enhanced["criteria_weights"].keys():
+                if criterion in result["lambda_max"]:
+                    lambda_max = result["lambda_max"].get(criterion, 0)
+                    ci = result["ci_values"].get(criterion, 0)
+                    cr = result["cr_results"].get(criterion, 0)
+                    ri_value = result.get("ri_values", {}).get(criterion, 0)
+                    is_consistent = result.get("consistency_status", {}).get(criterion, True)
+                    consistency_vector = result.get("consistency_vectors", {}).get(criterion, [])
+                    
+                    enhanced["alternatives_consistency"][criterion] = {
+                        "lambda_max": float(lambda_max),
+                        "CI": float(ci),
+                        "RI": float(ri_value),
+                        "CR": float(cr),
+                        "is_consistent": is_consistent,
+                        "consistency_vector": consistency_vector,
+                        "message": f"Ma trận {'nhất quán' if is_consistent else 'không nhất quán'} (CR = {cr:.3f})"
+                    }
+                    
+                    print(f"[ENHANCE] Added consistency info for {criterion}: Lambda={lambda_max:.4f}, CR={cr:.4f}")
+        else:
+            print("[ENHANCE] Warning: Missing required consistency data!")
+            
+        return enhanced
+        
+    except Exception as e:
+        print(f"Error enhancing AHP output: {str(e)}")
+        traceback.print_exc()
+        return result
+
 # =================== Main Entry Point ===================
 
 if __name__ == '__main__':
-    # Đọc cấu hình từ biến môi trường
-    import os
-    
-    # Thiết lập các biến với giá trị mặc định
-    debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
-    host = os.environ.get('HOST', '0.0.0.0')
-    port = int(os.environ.get('PORT', 5000))
-    
-    # Logging thông tin khởi động
-    print(f"Starting application with: DEBUG={debug_mode}, HOST={host}, PORT={port}")
-    
-    # Khởi động ứng dụng với cấu hình từ biến môi trường
-    app.run(debug=debug_mode, host=host, port=port)
+    app.run(debug=True, host='0.0.0.0', port=5000)

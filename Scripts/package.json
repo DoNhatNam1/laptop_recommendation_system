@@ -1,0 +1,20 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "main": "convertMatrixToExcel.ts",
+  "scripts": { 
+    "convert": "ts-node convertMatrixToExcel.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "@types/xlsx": "^0.0.35",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}

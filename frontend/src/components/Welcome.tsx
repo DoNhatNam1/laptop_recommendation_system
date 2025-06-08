@@ -3,16 +3,19 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Button } from './ui/button'
 import { Laptop, Zap, Target, ThumbsUp, ArrowRight } from 'lucide-react'
+import Cookies from 'js-cookie'
 
 function Welcome() {
   const navigate = useNavigate()
   const [showMainContent, setShowMainContent] = useState(false)
 
-  useEffect(() => {
-    localStorage.clear()
-    // Xóa tất cả dữ liệu trong localStorage khi vào trang này
-  }, [])
-  
+useEffect(() => {
+  localStorage.clear();
+  // Xóa tất cả cookie khi vào trang này
+  Object.keys(Cookies.get()).forEach(function(cookieName) {
+    Cookies.remove(cookieName, { path: "/" });
+  });
+}, []);
 
   useEffect(() => {
     // Hiển thị nội dung chính sau hiệu ứng logo

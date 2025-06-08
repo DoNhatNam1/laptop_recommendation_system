@@ -170,7 +170,7 @@ function CriteriaPairwiseComparison() {
     performance: searchParams.get("performance") || "",
     design: searchParams.get("design") || "",
     fromScreenSize: searchParams.get("fromScreenSize") || "",
-    toScreenSize: searchParams.get("toScreenSize") || ""
+    toScreenSize: searchParams.get("toScreenSize") || "",
   };
 
   // Get custom criteria from URL if available
@@ -209,13 +209,14 @@ function CriteriaPairwiseComparison() {
   useEffect(() => {
     // Only run validation on the first render
     if (!firstRenderRef.current) return;
-    
+
     // Validate required URL parameters, but only for essential ones
     if (!searchParams.get("usage")) {
       console.error("Thiếu thông tin cần thiết: usage");
       navigate("/", {
         state: {
-          error: "Thiếu thông tin cần thiết để tiến hành so sánh. Vui lòng thực hiện lại từ đầu.",
+          error:
+            "Thiếu thông tin cần thiết để tiến hành so sánh. Vui lòng thực hiện lại từ đầu.",
         },
       });
       return;
@@ -226,27 +227,71 @@ function CriteriaPairwiseComparison() {
   }, [searchParams, navigate]);
 
   useEffect(() => {
+    const hasImportedMatrix = searchParams.get("importedMatrix") === "true";
+
+    if (hasImportedMatrix) {
+      try {
+        const importedData = JSON.parse(
+          localStorage.getItem("importedCriteriaMatrix") || ""
+        );
+        if (importedData && importedData.criteria && importedData.matrix) {
+
+          // Tạo các comparisons từ dữ liệu import
+          const criteria = importedData.criteria;
+          let importedComparisons = generateComparisonPairs(criteria);
+
+          // Điền giá trị và đánh dấu là đã hoàn thành
+          for (let i = 0; i < criteria.length; i++) {
+            for (let j = i + 1; j < criteria.length; j++) {
+              const value = importedData.matrix[i][j];
+              const comparisonIndex = importedComparisons.findIndex(
+                (c) => c.row === criteria[i] && c.column === criteria[j]
+              );
+
+              if (comparisonIndex !== -1) {
+                importedComparisons[comparisonIndex] = {
+                  ...importedComparisons[comparisonIndex],
+                  value: value,
+                  completed: true,
+                  selectedCriteria: value > 1 ? criteria[i] : criteria[j],
+                };
+              }
+            }
+          }
+
+          setComparisons(importedComparisons);
+
+          // Đánh dấu là đã khởi tạo
+          hasInitializedCriteria.current = true;
+          return; // Thoát khỏi useEffect vì đã khởi tạo dữ liệu
+        }
+      } catch (e) {
+        console.error("Error loading imported matrix", e);
+        // Tiếp tục với flow thông thường nếu có lỗi
+      }
+    }
     // Only run once on component mount
     if (hasInitializedCriteria.current) return;
-    
+
     // Thay vì gán vào state, tạo biến local và sử dụng trực tiếp
     let criteriaToUse: string[];
-    
+
     if (criteriaLabels && criteriaLabels.length >= 2) {
       // Use custom criteria from URL parameters
       criteriaToUse = criteriaLabels;
     } else {
       // Fallback to predefined criteria by usage
-      criteriaToUse = CRITERIA_BY_USAGE[urlParams.usage as keyof typeof CRITERIA_BY_USAGE] || 
-                      CRITERIA_BY_USAGE.office;
+      criteriaToUse =
+        CRITERIA_BY_USAGE[urlParams.usage as keyof typeof CRITERIA_BY_USAGE] ||
+        CRITERIA_BY_USAGE.office;
     }
-    
+
     // Khởi tạo comparisons trực tiếp từ criteriaToUse
     setComparisons(generateComparisonPairs(criteriaToUse));
 
     // Mark as initialized so it won't run again
     hasInitializedCriteria.current = true;
-  }, []);  // Empty dependency array - will only run once on mount
+  }, []);
 
   const currentComparison = comparisons[currentIndex] || null;
 
@@ -269,157 +314,6 @@ function CriteriaPairwiseComparison() {
     setShowImportanceSelection(true);
   };
 
-  // Test data functions
-  const handleAutoFillTestData = () => {
-    // Test data from complete-full.http
-    const testData = [
-      { row: "Hiệu năng", column: "Giá", value: 3, selectedCriteria: "Hiệu năng" },
-      { row: "Hiệu năng", column: "Màn hình", value: "5/2", selectedCriteria: "Hiệu năng" },
-      { row: "Hiệu năng", column: "Pin", value: 2, selectedCriteria: "Hiệu năng" },
-      { row: "Hiệu năng", column: "Thiết kế", value: 4, selectedCriteria: "Hiệu năng" },
-      { row: "Hiệu năng", column: "Độ bền", value: "7/2", selectedCriteria: "Hiệu năng" },
-      { row: "Giá", column: "Màn hình", value: "3/2", selectedCriteria: "Giá" },
-      { row: "Giá", column: "Pin", value: "5/2", selectedCriteria: "Giá" },
-      { row: "Giá", column: "Thiết kế", value: 3, selectedCriteria: "Giá" },
-      { row: "Giá", column: "Độ bền", value: 3, selectedCriteria: "Giá" },
-      { row: "Màn hình", column: "Pin", value: "9/5", selectedCriteria: "Màn hình" },
-      { row: "Màn hình", column: "Thiết kế", value: "11/5", selectedCriteria: "Màn hình" },
-      { row: "Màn hình", column: "Độ bền", value: "5/2", selectedCriteria: "Màn hình" },
-      { row: "Pin", column: "Thiết kế", value: "27/10", selectedCriteria: "Pin" },
-      { row: "Pin", column: "Độ bền", value: 2, selectedCriteria: "Pin" },
-      { row: "Thiết kế", column: "Độ bền", value: "3/2", selectedCriteria: "Thiết kế" },
-    ];
-
-    // Create a mapping to find all test data applicable to each comparison
-    const updatedComparisons = comparisons.map((comparison) => {
-      // Try to find a direct match
-      const directMatch = testData.find(
-        test => test.row === comparison.row && test.column === comparison.column
-      );
-      
-      if (directMatch) {
-        return {
-          ...comparison,
-          value: directMatch.value,
-          completed: true,
-          selectedCriteria: directMatch.selectedCriteria
-        };
-      }
-
-      // Try to find a reverse match and invert the value
-      const reverseMatch = testData.find(
-        test => test.row === comparison.column && test.column === comparison.row
-      );
-
-      if (reverseMatch) {
-        // Invert the value
-        let invertedValue;
-        if (typeof reverseMatch.value === "string" && reverseMatch.value.includes("/")) {
-          const [numerator, denominator] = reverseMatch.value.split("/").map(Number);
-          invertedValue = `${denominator}/${numerator}`;
-        } else if (typeof reverseMatch.value === "number") {
-          invertedValue = `1/${reverseMatch.value}`;
-        } else {
-          invertedValue = 1; // Default fallback
-        }
-
-        return {
-          ...comparison,
-          value: invertedValue,
-          completed: true,
-          selectedCriteria: comparison.row // When inverted, the selectedCriteria changes
-        };
-      }
-
-      // If no match found, keep the original comparison
-      return comparison;
-    });
-
-    setComparisons(updatedComparisons);
-    setError(null);
-    
-    toast({
-      title: "Dữ liệu mẫu đã được áp dụng",
-      description: "Tất cả các đánh giá đã được hoàn thành tự động",
-      variant: "default",
-    });
-  };
-
-  const handleInconsistentTestData = () => {
-    // Inconsistent test data from inconsistent-matrices.http
-    const inconsistentTestData = [
-      { row: "Hiệu năng", column: "Giá", value: 7, selectedCriteria: "Hiệu năng" },
-      { row: "Hiệu năng", column: "Màn hình", value: "1/5", selectedCriteria: "Màn hình" },
-      { row: "Hiệu năng", column: "Pin", value: 9, selectedCriteria: "Hiệu năng" },
-      { row: "Hiệu năng", column: "Thiết kế", value: 4, selectedCriteria: "Hiệu năng" },
-      { row: "Hiệu năng", column: "Độ bền", value: "1/3", selectedCriteria: "Độ bền" },
-      { row: "Giá", column: "Màn hình", value: "1/8", selectedCriteria: "Màn hình" },
-      { row: "Giá", column: "Pin", value: "5/2", selectedCriteria: "Giá" },
-      { row: "Giá", column: "Thiết kế", value: 3, selectedCriteria: "Giá" },
-      { row: "Giá", column: "Độ bền", value: 6, selectedCriteria: "Giá" },
-      { row: "Màn hình", column: "Pin", value: 9, selectedCriteria: "Màn hình" },
-      { row: "Màn hình", column: "Thiết kế", value: "7/2", selectedCriteria: "Màn hình" },
-      { row: "Màn hình", column: "Độ bền", value: 8, selectedCriteria: "Màn hình" },
-      { row: "Pin", column: "Thiết kế", value: "1/6", selectedCriteria: "Thiết kế" },
-      { row: "Pin", column: "Độ bền", value: "1/4", selectedCriteria: "Độ bền" },
-      { row: "Thiết kế", column: "Độ bền", value: 5, selectedCriteria: "Thiết kế" }
-    ];
-
-    // Map and update comparisons with inconsistent data
-    const updatedComparisons = comparisons.map((comparison) => {
-      // Try to find a direct match
-      const directMatch = inconsistentTestData.find(
-        test => test.row === comparison.row && test.column === comparison.column
-      );
-      
-      if (directMatch) {
-        return {
-          ...comparison,
-          value: directMatch.value,
-          completed: true,
-          selectedCriteria: directMatch.selectedCriteria
-        };
-      }
-
-      // Try to find a reverse match and invert the value
-      const reverseMatch = inconsistentTestData.find(
-        test => test.row === comparison.column && test.column === comparison.row
-      );
-
-      if (reverseMatch) {
-        // Invert the value
-        let invertedValue;
-        if (typeof reverseMatch.value === "string" && reverseMatch.value.includes("/")) {
-          const [numerator, denominator] = reverseMatch.value.split("/").map(Number);
-          invertedValue = `${denominator}/${numerator}`;
-        } else if (typeof reverseMatch.value === "number") {
-          invertedValue = `1/${reverseMatch.value}`;
-        } else {
-          invertedValue = 1; // Default fallback
-        }
-
-        return {
-          ...comparison,
-          value: invertedValue,
-          completed: true,
-          selectedCriteria: comparison.row // When inverted, the selectedCriteria changes
-        };
-      }
-
-      // If no match found, keep the original comparison
-      return comparison;
-    });
-
-    setComparisons(updatedComparisons);
-    setError(null);
-    
-    toast({
-      title: "Dữ liệu không nhất quán đã được áp dụng",
-      description: "Các đánh giá này cố ý tạo ra mâu thuẫn để kiểm tra CR > 0.1",
-      variant: "warning",
-      duration: 3000
-    });
-  };
 
   const handleSelectImportanceLevel = (value: string | number) => {
     if (!currentComparison || !selectedCriteria) return;
@@ -539,7 +433,8 @@ function CriteriaPairwiseComparison() {
     if (currentIndex < comparisons.length - 1) {
       toast({
         title: "Chưa hoàn thành",
-        description: "Vui lòng hoàn thành tất cả các so sánh trước khi tiếp tục.",
+        description:
+          "Vui lòng hoàn thành tất cả các so sánh trước khi tiếp tục.",
         variant: "destructive",
       });
       return;
@@ -555,7 +450,10 @@ function CriteriaPairwiseComparison() {
       const formattedComparisons = comparisons.map((comparison) => ({
         row: comparison.row,
         column: comparison.column,
-        value: typeof comparison.value === "string" ? comparison.value : comparison.value.toString(),
+        value:
+          typeof comparison.value === "string"
+            ? comparison.value
+            : comparison.value.toString(),
         selected_criterion: comparison.selectedCriteria,
       }));
 
@@ -566,43 +464,53 @@ function CriteriaPairwiseComparison() {
       };
 
       // Submit to API
-      const response: ProcessComparisonsResponse = await apiService.processComparisons(payload);
+      const response: ProcessComparisonsResponse =
+        await apiService.processComparisons(payload);
 
       if (response.status === "success") {
-        if (response.consistency && response.consistency.is_consistent) {
+        if (response.consistency.CR <= 0.1 && response.consistency.is_consistent) {
           // Success! Update state and prepare to navigate
           setProcessingState("success");
-          
+
           setTimeout(() => {
             // Tạo URL params mới, giữ lại TẤT CẢ tham số lọc từ URL hiện tại
             const params = new URLSearchParams(searchParams.toString());
-            
+
             // CHỈ lưu dữ liệu vào cookies, KHÔNG thêm vào URL
             if (response.weights && response.weights.formatted) {
               const weightsObject: Record<string, number> = {};
-              response.weights.formatted.forEach(item => {
+              response.weights.formatted.forEach((item) => {
                 weightsObject[item.criterion] = item.weight;
               });
-              
+
               // Chỉ lưu vào cookies, không đưa vào URL
-              Cookies.set('criteriaWeights', JSON.stringify(weightsObject), { expires: 1, path: '/' });
+              Cookies.set("criteriaWeights", JSON.stringify(weightsObject), {
+                expires: 1,
+                path: "/",
+              });
             }
-            
+
             // Extract danh sách tiêu chí và chỉ lưu vào cookies
             const criteriaList = comparisons
-              .map(comp => comp.row)
+              .map((comp) => comp.row)
               .filter((value, index, self) => self.indexOf(value) === index);
-            
+
             // Chỉ lưu vào cookies
-            Cookies.set('criteriaList', JSON.stringify(criteriaList), { expires: 1, path: '/' });
-            
+            Cookies.set("criteriaList", JSON.stringify(criteriaList), {
+              expires: 1,
+              path: "/",
+            });
+
             // Lưu thêm thông tin vào cookies
-            Cookies.set('processComparisonResponse', JSON.stringify(response), { expires: 1, path: '/' });
-            
+            Cookies.set("processComparisonResponse", JSON.stringify(response), {
+              expires: 1,
+              path: "/",
+            });
+
             // XÓA các tham số không cần thiết khỏi URL nếu có
-            params.delete('weights');
-            params.delete('criteria');
-            
+            params.delete("weights");
+            params.delete("criteria");
+
             // Chuyển đến trang tiếp theo với URL ngắn gọn hơn
             navigate(`/laptop-selection?${params.toString()}`);
           }, 1500);
@@ -611,20 +519,22 @@ function CriteriaPairwiseComparison() {
           setProcessingState("error");
           setProcessingError(
             response.consistency?.message ||
-            "Ma trận đánh giá không nhất quán. Vui lòng xem lại các so sánh của bạn."
+              "Ma trận đánh giá không nhất quán. Vui lòng xem lại các so sánh của bạn."
           );
         }
       } else {
         // Error response
         setProcessingState("error");
         setProcessingError(
-          response.message || "Có lỗi xảy ra khi gửi dữ liệu. Vui lòng thử lại."
+         "Có lỗi xảy ra khi gửi dữ liệu. Vui lòng thử lại."
         );
       }
     } catch (error) {
       console.error("Error submitting comparisons:", error);
       setProcessingState("error");
-      setProcessingError("Không thể kết nối đến máy chủ. Vui lòng thử lại sau.");
+      setProcessingError(
+        "Không thể kết nối đến máy chủ. Vui lòng thử lại sau."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -705,13 +615,15 @@ function CriteriaPairwiseComparison() {
     : 0;
 
   const isFormValid =
-    comparisons.every((c) => c.completed) && processingState !== "processing" && !isSubmitting;
+    comparisons.every((c) => c.completed) &&
+    processingState !== "processing" &&
+    !isSubmitting;
 
   // Thêm useEffect để mô phỏng tiến độ
   useEffect(() => {
     if (processingState === "processing") {
       const timer = setInterval(() => {
-        setProcessingProgress(prev => {
+        setProcessingProgress((prev) => {
           if (prev >= 90) clearInterval(timer);
           return Math.min(prev + 10, 90);
         });
@@ -760,13 +672,13 @@ function CriteriaPairwiseComparison() {
               Tiến độ so sánh
             </span>
             <Badge
-                variant="default"
-                className={`${
-                  completedPercentage === 100
-                    ? "bg-green-100 text-green-800 border-green-200"
-                    : "bg-indigo-100 text-indigo-800 border-indigo-200"
-                }`}
-              >
+              variant="default"
+              className={`${
+                completedPercentage === 100
+                  ? "bg-green-100 text-green-800 border-green-200"
+                  : "bg-indigo-100 text-indigo-800 border-indigo-200"
+              }`}
+            >
               {completedPercentage}% hoàn thành
             </Badge>
           </div>
@@ -1254,7 +1166,7 @@ function CriteriaPairwiseComparison() {
           </motion.div>
         )}
 
-        {/* Developer tools for testing */}
+        {/* Developer tools for testing
         <div className="flex pt-6 mt-6 space-x-3 border-t border-gray-200">
           <Button
             variant="outline"
@@ -1272,13 +1184,10 @@ function CriteriaPairwiseComparison() {
           >
             Test Inconsistent Data
           </Button>
-        </div>
+        </div> */}
 
         {/* Review Dialog (for testing purposes) */}
-        <Dialog
-          open={showReviewDialog}
-          onOpenChange={setShowReviewDialog}
-        >
+        <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
           <DialogContent className="relative z-50 max-w-2xl p-6 mx-auto bg-white rounded-lg shadow-lg">
             <DialogHeader>
               <DialogTitle className="text-lg font-semibold text-gray-800">
@@ -1331,7 +1240,8 @@ function CriteriaPairwiseComparison() {
                           <td className="px-4 py-3 text-sm border-b">
                             {comparison.selectedCriteria === comparison.row
                               ? "✓"
-                              : comparison.selectedCriteria === comparison.column
+                              : comparison.selectedCriteria ===
+                                comparison.column
                               ? "✗"
                               : "-"}
                           </td>

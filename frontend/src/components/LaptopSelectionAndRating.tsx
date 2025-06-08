@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import { motion } from "framer-motion";
 import {
   Check,
@@ -16,11 +18,11 @@ import {
   Info,
   AlertTriangle,
   Database,
+  Calculator,
+  CheckCircle2,
+  Table,
 } from "lucide-react";
-import Cookies from "js-cookie";
-
-import { Button } from "./ui/button";
-import { Checkbox } from "./ui/checkbox";
+import { toast } from "./ui/use-toast";
 import {
   Card,
   CardContent,
@@ -29,6 +31,8 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import {
   Tooltip,
@@ -39,7 +43,6 @@ import {
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Progress } from "./ui/progress";
-import { toast } from "./ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -48,8 +51,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { ScrollArea } from "./ui/scroll-area";
+
+import Cookies from "js-cookie";
+
 import apiService from "@/services/api";
+import { ScrollArea } from "./ui/scroll-area";
+
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip as TooltipChart,
+  Legend,
+  ArcElement,
+} from "chart.js";
+import { Pie } from "react-chartjs-2";
+
+ChartJS.register(
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  TooltipChart,
+  Legend,
+  ArcElement
+);
 
 // Animation variants
 const containerVariants = {
@@ -164,13 +190,12 @@ function formatPrice(price: number): string {
   return new Intl.NumberFormat("vi-VN", options).format(price);
 }
 
-
 // Component
 function LaptopSelectionAndRating() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const routeState = location.state || {};
+  const [searchParams] = useSearchParams();
 
   const weightsParam = searchParams.get("weights");
 
@@ -178,12 +203,18 @@ function LaptopSelectionAndRating() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filteredLaptops, setFilteredLaptops] = useState<Laptop[]>([]);
+  const [showCriteriaMatrixDialog, setShowCriteriaMatrixDialog] =
+    useState(false);
+  const [criteriaActiveTab, setCriteriaActiveTab] = useState("matrix");
+  const [criteriaData, setCriteriaData] = useState<any>(null);
   const [selectedLaptops, setSelectedLaptops] = useState<Laptop[]>([]);
   const [activeTab, setActiveTab] = useState("selection");
   const [ratingMode, setRatingMode] = useState<RatingMode>("auto");
   const [manualRatings, setManualRatings] = useState<ManualRatings>({});
   const [ratingProgress, setRatingProgress] = useState<RatingProgressMap>({});
   const [activeCriterion, setActiveCriterion] = useState<string>("");
+  const [customRatingValue, setCustomRatingValue] = useState<string>("");
+  const [customRatingError, setCustomRatingError] = useState<string>("");
   const [currentPair, setCurrentPair] = useState<Pair>({
     rowIndex: 0,
     colIndex: 1,
@@ -214,14 +245,17 @@ function LaptopSelectionAndRating() {
 
     // Nếu thiếu bất kỳ cookie cần thiết nào, redirect về trang chủ
     if (!criteriaWeightsCookie || !criteriaListCookie) {
-      console.warn("Thiếu dữ liệu tiêu chí bắt buộc, chuyển hướng về trang chủ");
+      console.warn(
+        "Thiếu dữ liệu tiêu chí bắt buộc, chuyển hướng về trang chủ"
+      );
 
       // Chuyển hướng về trang chủ với thông báo lỗi
       navigate("/", {
         state: {
-          error: "Bạn cần hoàn thành bước so sánh tiêu chí trước khi xem gợi ý laptop.",
-          redirectFrom: "laptop-selection"
-        }
+          error:
+            "Bạn cần hoàn thành bước so sánh tiêu chí trước khi xem gợi ý laptop.",
+          redirectFrom: "laptop-selection",
+        },
       });
       return; // Ngăn useEffect tiếp tục thực hiện
     }
@@ -239,32 +273,32 @@ function LaptopSelectionAndRating() {
       console.error("Lỗi khi parse dữ liệu cookie:", e);
       navigate("/", {
         state: {
-          error: "Dữ liệu tiêu chí không hợp lệ. Vui lòng thực hiện lại từ đầu.",
-          redirectFrom: "laptop-selection"
-        }
+          error:
+            "Dữ liệu tiêu chí không hợp lệ. Vui lòng thực hiện lại từ đầu.",
+          redirectFrom: "laptop-selection",
+        },
       });
       return;
     }
 
-    // Tiếp tục code hiện tại để fetch laptop...
     const fetchLaptops = async () => {
       try {
         setLoading(true);
 
         // Chuẩn bị tham số
         const params = {
-          usage: searchParams.get('usage') || 'general',
-          fromBudget: searchParams.get('fromBudget') || '',
-          toBudget: searchParams.get('toBudget') || '',
-          performance: searchParams.get('performance') || '',
-          design: searchParams.get('design') || '',
-          fromScreenSize: searchParams.get('fromScreenSize') || '',
-          toScreenSize: searchParams.get('toScreenSize') || ''
+          usage: searchParams.get("usage") || "general",
+          fromBudget: searchParams.get("fromBudget") || "",
+          toBudget: searchParams.get("toBudget") || "",
+          performance: searchParams.get("performance") || "",
+          design: searchParams.get("design") || "",
+          fromScreenSize: searchParams.get("fromScreenSize") || "",
+          toScreenSize: searchParams.get("toScreenSize") || "",
         };
 
         // Loại bỏ các tham số rỗng
         const filteredParams = Object.fromEntries(
-          Object.entries(params).filter(([_, value]) => value !== '')
+          Object.entries(params).filter(([_, value]) => value !== "")
         );
 
         console.log("Fetching laptops with params:", filteredParams);
@@ -276,7 +310,7 @@ function LaptopSelectionAndRating() {
           console.log("Successfully fetched laptops:", data.laptops.length);
 
           // Normalize the data to match our Laptop interface
-          const normalizedLaptops = data.laptops.map(laptop => ({
+          const normalizedLaptops = data.laptops.map((laptop) => ({
             id: String(laptop.id),
             name: laptop.name,
             price: laptop.price,
@@ -288,13 +322,16 @@ function LaptopSelectionAndRating() {
             screenName: laptop.screen_name,
             // Keep other fields as is
             battery: String(laptop.battery || ""),
-            storage: laptop.storage || ""
+            storage: laptop.storage || "",
           }));
 
           setFilteredLaptops(normalizedLaptops);
 
           // Mặc định chọn 3 laptop đầu tiên
-          const defaultSelected = normalizedLaptops.slice(0, Math.min(3, normalizedLaptops.length));
+          const defaultSelected = normalizedLaptops.slice(
+            0,
+            Math.min(3, normalizedLaptops.length)
+          );
           setSelectedLaptops(defaultSelected);
 
           // Khởi tạo cấu trúc đánh giá thủ công
@@ -412,8 +449,53 @@ function LaptopSelectionAndRating() {
     // Nếu là chế độ thủ công, bắt đầu với tiêu chí đầu tiên
     if (ratingMode === "manual" && criteriaOrder.length > 0) {
       setActiveCriterion(criteriaOrder[0]);
-      setCurrentPair({ rowIndex: 0, colIndex: 1 });
     }
+  };
+
+  // Sửa hàm này trong LaptopSelectionAndRating.tsx
+  const handleOpenCriteriaMatrix = (): void => {
+    // Fetch criteria data from cookies or API
+    try {
+      const criteriaDataJson = Cookies.get("processComparisonResponse"); // Sửa tên cookie
+
+      if (criteriaDataJson) {
+        const parsedData = JSON.parse(criteriaDataJson);
+        console.log("Loaded criteria data from cookie:", parsedData); // Thêm log để debug
+        setCriteriaData(parsedData);
+      } else {
+        console.warn("Cookie processComparisonResponse not found");
+
+        // Thử lấy từ localStorage nếu có
+        const backupData = localStorage.getItem("criteriaMatrixData");
+        if (backupData) {
+          setCriteriaData(JSON.parse(backupData));
+        } else {
+          toast({
+            title: "Không tìm thấy dữ liệu",
+            description: "Không tìm thấy dữ liệu phân tích tiêu chí",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error loading criteria data:", err);
+      toast({
+        title: "Lỗi",
+        description: "Có lỗi xảy ra khi đọc dữ liệu phân tích tiêu chí",
+        variant: "destructive",
+      });
+    }
+
+    setShowCriteriaMatrixDialog(true);
+  };
+
+  // Utility functions for formatting numbers in the criteria dialog
+  const formatNumber = (num: number): string => {
+    return num % 1 === 0 ? num.toString() : num.toFixed(3);
+  };
+
+  const formatPercent = (num: number): string => {
+    return (num * 100).toFixed(1);
   };
 
   // Handle rating mode change
@@ -565,42 +647,37 @@ function LaptopSelectionAndRating() {
   };
 
   // Thêm state này trong đoạn khai báo các state của component, sau các state hiện có
-const [ratingDialogValue, setRatingDialogValue] = useState<{
-  isOpen: boolean;
-  criterion: string | null;
-  rowIndex: number | null;
-  colIndex: number | null;
-}>({
-  isOpen: false,
-  criterion: null,
-  rowIndex: null,
-  colIndex: null,
-});
-
-// Thêm các hàm này vào phần các function trong component
-// Mở dialog để chọn giá trị đánh giá
-const openRatingDialog = (criterion: string, rowIndex: number, colIndex: number) => {
-  setRatingDialogValue({
-    isOpen: true,
-    criterion,
-    rowIndex,
-    colIndex
-  });
-};
-
-// Reset giá trị dialog về mặc định và đóng dialog
-const resetRatingDialog = () => {
-  setRatingDialogValue({
+  const [ratingDialogValue, setRatingDialogValue] = useState<{
+    isOpen: boolean;
+    criterion: string | null;
+    rowIndex: number | null;
+    colIndex: number | null;
+  }>({
     isOpen: false,
     criterion: null,
     rowIndex: null,
-    colIndex: null
+    colIndex: null,
   });
-};
+
+  // Thêm các hàm này vào phần các function trong component
+  // Mở dialog để chọn giá trị đánh giá
+  const openRatingDialog = (
+    criterion: string,
+    rowIndex: number,
+    colIndex: number
+  ) => {
+    setRatingDialogValue({
+      isOpen: true,
+      criterion,
+      rowIndex,
+      colIndex,
+    });
+  };
 
   // Check if all ratings are complete
   const isRatingComplete = () => {
-    if (ratingMode === "auto") return true;
+    // Explicitly check against RatingMode type
+    if (ratingMode === ("auto" as RatingMode)) return true;
 
     // Kiểm tra từng tiêu chí
     for (const criterion of criteriaOrder) {
@@ -616,119 +693,158 @@ const resetRatingDialog = () => {
   };
 
   // Sửa lại hàm formatManualRatingsForAPI
-  const formatManualRatingsForAPI = (_criterion: string, matrix: (number | null)[][]): any[] => {
+  const formatManualRatingsForAPI = (
+    _criterion: string,
+    matrix: (number | null)[][]
+  ): any[] => {
     const result = [];
-    
+
     for (let i = 0; i < matrix.length; i++) {
       for (let j = i + 1; j < matrix[i].length; j++) {
         // Kiểm tra matrix[i][j] không null và selectedLaptops[i], selectedLaptops[j] tồn tại
-        if (matrix[i][j] !== null && 
-            i < selectedLaptops.length && 
-            j < selectedLaptops.length) {
-            
+        if (
+          matrix[i][j] !== null &&
+          i < selectedLaptops.length &&
+          j < selectedLaptops.length
+        ) {
           // Đảm bảo các đối tượng laptop tồn tại và có thuộc tính name
           const laptopA = selectedLaptops[i];
           const laptopB = selectedLaptops[j];
-          
+
           if (laptopA && laptopB && laptopA.name && laptopB.name) {
             // Định dạng theo mẫu API: row/column sử dụng tên laptop thay vì index
             result.push({
-                row: laptopA.name,
-                column: laptopB.name,
-                // Chuyển đổi giá trị sang string định dạng phân số nếu là phân số
-                value: matrix[i][j] !== null ? 
-                  (Number(matrix[i][j]) < 1 ? 
-                    `1/${Math.round(1/Number(matrix[i][j]))}` : 
-                    matrix[i][j]) : 
-                  "1"
+              row: laptopA.name,
+              column: laptopB.name,
+              // Chuyển đổi giá trị sang string định dạng phân số nếu là phân số
+              value:
+                matrix[i][j] !== null
+                  ? Number(matrix[i][j]) < 1
+                    ? `1/${Math.round(1 / Number(matrix[i][j]))}`
+                    : matrix[i][j]
+                  : "1",
             });
           }
         }
       }
     }
-    
+
     return result;
   };
 
-  // Cập nhật handleComplete để lưu kết quả vào cookies và sử dụng API đúng cách
-  const handleComplete = async () => {
-    if (ratingMode === "manual" && !isRatingComplete()) {
-      toast({
-        title: "Chưa hoàn thành đánh giá",
-        description: "Vui lòng đánh giá tất cả các cặp laptop trước khi tiếp tục",
-        variant: "destructive",
-      } as ToastOptions);
-      return;
-    }
+const handleComplete = async () => {
+  if (ratingMode === "manual" && !isRatingComplete()) {
+    toast({
+      title: "Chưa hoàn thành đánh giá",
+      description:
+        "Vui lòng đánh giá tất cả các cặp laptop trước khi tiếp tục",
+      variant: "destructive",
+    } as ToastOptions);
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      // Chuẩn bị dữ liệu theo định dạng API yêu cầu
-      const requestData: any = {
-        criteria_weights: criteriaWeights,
-        filtered_laptops: filteredLaptops,
-        evaluationMethod: ratingMode,
-      };
+  try {
+    // Chuẩn bị dữ liệu theo định dạng API yêu cầu
+    const requestData: any = {
+      criteria_weights: criteriaWeights,
+      filtered_laptops: selectedLaptops,
+      evaluationMethod: ratingMode,
+    };
 
-      // Nếu là đánh giá thủ công, thêm các thông tin bắt buộc
-      if (ratingMode === "manual") {
-        // Thêm danh sách laptop đã chọn với chỉ id và name
-        requestData.selectedLaptops = selectedLaptops.map(laptop => ({
-          id: laptop.id,
-          name: laptop.name
-        }));
-        
-        // Định dạng lại ma trận so sánh theo mẫu API
-        const laptopComparisons: Record<string, any[]> = {};
-        
-        criteriaOrder.forEach((criterion) => {
-          laptopComparisons[criterion] = formatManualRatingsForAPI(
-            criterion, manualRatings[criterion]
-          );
-        });
-        
-        requestData.laptopComparisons = laptopComparisons;
-      }
+    // Nếu là đánh giá thủ công, thêm các thông tin bắt buộc
+    if (ratingMode === "manual") {
+      // Thêm danh sách laptop đã chọn với chỉ id và name
+      requestData.selectedLaptops = selectedLaptops.map((laptop) => ({
+        id: laptop.id,
+        name: laptop.name,
+      }));
 
-      // Log data gửi đi để debug
-      console.log("Submitting data to API:", requestData);
+      // Định dạng lại ma trận so sánh theo mẫu API
+      const laptopComparisons: Record<string, any[]> = {};
 
-      // Gửi request đến API
-      const response = await fetch("/api/evaluate-laptops", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
+      criteriaOrder.forEach((criterion) => {
+        laptopComparisons[criterion] = formatManualRatingsForAPI(
+          criterion,
+          manualRatings[criterion]
+        );
       });
 
-      // Kiểm tra xem response có thành công không
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+      requestData.laptopComparisons = laptopComparisons;
+    }
+
+    // Log data gửi đi để debug
+    console.log("Submitting data to API:", requestData);
+
+    // Gửi request đến API
+    const response = await fetch("/api/evaluate-laptops", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestData),
+    });
+
+    // Kiểm tra xem response có thành công không
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("API response:", data);
+
+    // Nếu có kết quả CR và đang ở chế độ thủ công, kiểm tra tính nhất quán
+    if (ratingMode === "manual" && data.cr_results) {
+      // Kiểm tra từng tiêu chí có CR <= 0.1 hay không
+      const invalidCriteria = [];
+      for (const criterion in data.cr_results) {
+        if (data.cr_results[criterion] > 0.1) {
+          invalidCriteria.push({
+            name: criterion,
+            cr: data.cr_results[criterion].toFixed(3)
+          });
+        }
       }
 
-      const data = await response.json();
-      console.log("API response:", data);
-
-      // Kiểm tra xem API đã trả về kết quả đầy đủ chưa hay chỉ là task_id
-      if (data.status === "success" && data.ranked_laptops) {
-        // API đã trả về kết quả đầy đủ ngay lập tức
-        handleApiResults(data);
-      } else if (data.task_id) {
-        // API chỉ trả về task_id, cần phải poll để lấy kết quả
-        await pollForResults(data.task_id);
-      } else {
-        // Trường hợp không xác định
-        setError(data.message || "Có lỗi xảy ra khi xử lý đánh giá");
+      // Nếu có tiêu chí không đạt yêu cầu nhất quán
+      if (invalidCriteria.length > 0) {
         setLoading(false);
+        
+        // Tạo thông báo chi tiết về các tiêu chí không đạt
+        const criteriaList = invalidCriteria
+          .map(c => `${c.name} (CR = ${c.cr})`)
+          .join(", ");
+          
+        toast({
+          title: "Đánh giá thiếu nhất quán",
+          description: `Các tiêu chí sau có CR > 0.1: ${criteriaList}. Vui lòng điều chỉnh đánh giá để đảm bảo tính nhất quán.`,
+          variant: "destructive",
+          duration: 8000,
+        } as ToastOptions);
+        
+        return;
       }
-    } catch (err) {
-      console.error("Error submitting ratings:", err);
-      setError("Không thể kết nối đến máy chủ");
+    }
+
+    // Kiểm tra xem API đã trả về kết quả đầy đủ chưa hay chỉ là task_id
+    if (data.status === "success" && data.ranked_laptops) {
+      // API đã trả về kết quả đầy đủ ngay lập tức
+      handleApiResults(data);
+    } else if (data.task_id) {
+      // API chỉ trả về task_id, cần phải poll để lấy kết quả
+      await pollForResults(data.task_id);
+    } else {
+      // Trường hợp không xác định
+      setError(data.message || "Có lỗi xảy ra khi xử lý đánh giá");
       setLoading(false);
     }
-  };
+  } catch (err) {
+    console.error("Error submitting ratings:", err);
+    setError("Không thể kết nối đến máy chủ");
+    setLoading(false);
+  }
+};
 
   // Hàm mới: Poll API để kiểm tra kết quả theo task_id
   const pollForResults = async (taskId: string) => {
@@ -740,7 +856,7 @@ const resetRatingDialog = () => {
     });
 
     // Số lần tối đa thử lấy kết quả (mỗi lần cách nhau 1 giây)
-    const maxAttempts = 20; 
+    const maxAttempts = 20;
     let attempts = 0;
 
     const checkResult = async () => {
@@ -751,7 +867,7 @@ const resetRatingDialog = () => {
       }
 
       attempts++;
-      
+
       try {
         // Gọi API kiểm tra trạng thái của task
         const response = await fetch(`/api/task-status/${taskId}`);
@@ -781,20 +897,19 @@ const resetRatingDialog = () => {
 
   // Hàm mới: Xử lý kết quả API và điều hướng
   const handleApiResults = (data: any) => {
-    // Xử lý và chuẩn hóa dữ liệu 
+    // Xử lý và chuẩn hóa dữ liệu
     const normalizedResult = {
-      status: data.status,
-      ranked_laptops: data.ranked_laptops || [],
-      weights: data.criteria_weights || criteriaWeights, 
-      laptop_count: data.laptop_count || filteredLaptops.length,
-      message: data.message,
-      stage: data.stage
+      ...data,
+      filtered_laptops: filteredLaptops,
     };
-    
+
     console.log("Normalized result data:", normalizedResult);
 
     // Lưu kết quả vào localStorage để backup
-    localStorage.setItem("recommendation_result", JSON.stringify(normalizedResult));
+    localStorage.setItem(
+      "recommendation_result",
+      JSON.stringify(normalizedResult)
+    );
 
     // Lưu kết quả vào cookie
     Cookies.set("evaluationResults", JSON.stringify(normalizedResult), {
@@ -845,78 +960,100 @@ const resetRatingDialog = () => {
     // Hàm phân tích CPU score dựa trên tên CPU
     const getCpuScore = (cpuName: string | undefined): number => {
       if (!cpuName) return 50;
-      
-      const score = 
-        cpuName.includes("Ryzen 9") || cpuName.includes("i9") ? 95 :
-        cpuName.includes("Ryzen 7") || cpuName.includes("i7") ? 85 :
-        cpuName.includes("Ryzen 5") || cpuName.includes("i5") ? 70 :
-        cpuName.includes("Ryzen 3") || cpuName.includes("i3") ? 55 : 50;
-        
+
+      const score =
+        cpuName.includes("Ryzen 9") || cpuName.includes("i9")
+          ? 95
+          : cpuName.includes("Ryzen 7") || cpuName.includes("i7")
+          ? 85
+          : cpuName.includes("Ryzen 5") || cpuName.includes("i5")
+          ? 70
+          : cpuName.includes("Ryzen 3") || cpuName.includes("i3")
+          ? 55
+          : 50;
+
       // Thêm điểm cho thế hệ CPU (số càng cao càng tốt)
       const genMatch = cpuName.match(/\d{4,5}/);
       const generation = genMatch ? parseInt(genMatch[0].substring(0, 1)) : 0;
-      
-      return score + (generation * 2);
+
+      return score + generation * 2;
     };
-    
+
     // Tính điểm cho từng laptop theo tiêu chí hiện tại
-    const getScoreForCriterion = (laptop: Laptop, criterionName: string): number => {
+    const getScoreForCriterion = (
+      laptop: Laptop,
+      criterionName: string
+    ): number => {
       switch (criterionName) {
         case "Hiệu năng":
           const cpuScore = getCpuScore(laptop.cpu);
           const ramSizeMatch = laptop.ram?.match(/\d+/);
           const ramScore = ramSizeMatch ? parseInt(ramSizeMatch[0]) : 8;
           const isDDR5 = laptop.ram?.toLowerCase().includes("ddr5") ? 1.2 : 1;
-          
-          return cpuScore * 0.6 + (ramScore * isDDR5 * 3);
-          
+
+          return cpuScore * 0.6 + ramScore * isDDR5 * 3;
+
         case "Giá":
           // Giá thấp hơn thì tốt hơn -> điểm cao hơn (nghịch đảo)
           return laptop.price ? 2000000000 / laptop.price : 1;
-          
+
         case "Màn hình":
           const screenSize = parseFloat(laptop.screen || "14") || 14;
-          const resolution = 
-            (laptop.screenName || "").toLowerCase().includes("4k") ? 3 :
-            (laptop.screenName || "").toLowerCase().includes("2k") || 
-            (laptop.screenName || "").toLowerCase().includes("qhd") ? 2 :
-            (laptop.screenName || "").toLowerCase().includes("fhd") ? 1.5 : 1;
-          const isOLED = (laptop.screenName || "").toLowerCase().includes("oled") ? 1.5 : 1;
-          
+          const resolution = (laptop.screenName || "")
+            .toLowerCase()
+            .includes("4k")
+            ? 3
+            : (laptop.screenName || "").toLowerCase().includes("2k") ||
+              (laptop.screenName || "").toLowerCase().includes("qhd")
+            ? 2
+            : (laptop.screenName || "").toLowerCase().includes("fhd")
+            ? 1.5
+            : 1;
+          const isOLED = (laptop.screenName || "")
+            .toLowerCase()
+            .includes("oled")
+            ? 1.5
+            : 1;
+
           return screenSize * resolution * isOLED;
-          
+
         case "Pin":
           // Trích xuất dung lượng pin (mAh)
           const batteryCapacity = extractNumericValue(laptop.battery);
           return batteryCapacity / 1000; // Chia để có số điểm hợp lý
-          
+
         case "Thiết kế":
           // Trọng lượng nhẹ hơn thì tốt hơn -> nghịch đảo
           return laptop.weight ? 3 / laptop.weight : 1;
-          
+
         case "Độ bền":
           // Đối với độ bền, ưu tiên các thương hiệu "bền"
           const brand = laptop.name.toLowerCase();
           const durabilityScore =
-            brand.includes("thinkpad") || brand.includes("dell") ? 9 :
-            brand.includes("hp") || brand.includes("lenovo") ? 7 :
-            brand.includes("asus") ? 6 :
-            brand.includes("acer") ? 5 : 4;
-            
+            brand.includes("thinkpad") || brand.includes("dell")
+              ? 9
+              : brand.includes("hp") || brand.includes("lenovo")
+              ? 7
+              : brand.includes("asus")
+              ? 6
+              : brand.includes("acer")
+              ? 5
+              : 4;
+
           return durabilityScore;
-          
+
         default:
           return 1;
       }
     };
 
     // Tính điểm cho tất cả laptop theo tiêu chí hiện tại
-    const scores = laptops.map(laptop => ({
+    const scores = laptops.map((laptop) => ({
       id: laptop.id,
       name: laptop.name,
-      score: getScoreForCriterion(laptop, criterion)
+      score: getScoreForCriterion(laptop, criterion),
     }));
-    
+
     console.log(`Điểm ${criterion} của các laptop:`, scores);
 
     // Tạo ma trận so sánh mới
@@ -929,21 +1066,37 @@ const resetRatingDialog = () => {
         } else {
           // Tính tỷ lệ điểm giữa 2 laptop
           let ratio = scores[i].score / scores[j].score;
-          
+
           // Áp dụng hiệu chỉnh cho tiêu chí Giá (để so sánh trực quan hơn)
           if (criterion === "Giá") {
             const priceDiff = Math.abs(laptops[i].price - laptops[j].price);
-            if (priceDiff < 1000000) ratio = ratio > 1 ? 1 : ratio; // Chênh lệch ít hơn 1 triệu đồng
-            else if (priceDiff < 3000000) ratio = ratio > 1 ? Math.min(ratio, 2) : Math.max(ratio, 1/2); // Chênh lệch 1-3 triệu
-            else if (priceDiff < 5000000) ratio = ratio > 1 ? Math.min(ratio, 3) : Math.max(ratio, 1/3); // Chênh lệch 3-5 triệu
+            if (priceDiff < 1000000)
+              ratio = ratio > 1 ? 1 : ratio; // Chênh lệch ít hơn 1 triệu đồng
+            else if (priceDiff < 3000000)
+              ratio = ratio > 1 ? Math.min(ratio, 2) : Math.max(ratio, 1 / 2);
+            // Chênh lệch 1-3 triệu
+            else if (priceDiff < 5000000)
+              ratio = ratio > 1 ? Math.min(ratio, 3) : Math.max(ratio, 1 / 3); // Chênh lệch 3-5 triệu
           }
 
           // Giới hạn trong thang điểm AHP (1/9 đến 9)
           if (ratio > 9) ratio = 9;
-          else if (ratio < 1/9) ratio = 1/9;
+          else if (ratio < 1 / 9) ratio = 1 / 9;
 
           // Làm tròn đến giá trị thang đánh giá gần nhất
-          const ratingValues = [9, 7, 5, 3, 2, 1, 1/2, 1/3, 1/5, 1/7, 1/9];
+          const ratingValues = [
+            9,
+            7,
+            5,
+            3,
+            2,
+            1,
+            1 / 2,
+            1 / 3,
+            1 / 5,
+            1 / 7,
+            1 / 9,
+          ];
           let closest = 1;
           let minDiff = Math.abs(ratio - 1);
 
@@ -999,6 +1152,330 @@ const resetRatingDialog = () => {
     }
   };
 
+  // Thêm hàm xử lý giá trị tùy chỉnh
+  const handleCustomRatingSubmit = () => {
+    // Validate giá trị nhập vào
+    const fractionRegex = /^(\d+)\/(\d+)$/;
+    const numberRegex = /^\d+(\.\d+)?$/;
+
+    let value: number;
+
+    if (fractionRegex.test(customRatingValue)) {
+      // Xử lý nếu là phân số
+      const match = customRatingValue.match(fractionRegex);
+      if (match) {
+        const numerator = parseInt(match[1]);
+        const denominator = parseInt(match[2]);
+
+        if (denominator === 0) {
+          setCustomRatingError("Mẫu số không thể bằng 0");
+          return;
+        }
+
+        value = numerator / denominator;
+      } else {
+        setCustomRatingError("Định dạng phân số không hợp lệ");
+        return;
+      }
+    } else if (numberRegex.test(customRatingValue)) {
+      // Xử lý nếu là số thập phân
+      value = parseFloat(customRatingValue);
+    } else {
+      setCustomRatingError(
+        "Vui lòng nhập số hợp lệ hoặc phân số (VD: 3, 2.5 hoặc 1/3)"
+      );
+      return;
+    }
+
+    // Giới hạn giá trị từ 1/9 đến 9
+    if (value < 1 / 9 || value > 9) {
+      setCustomRatingError("Giá trị phải nằm trong khoảng từ 1/9 đến 9");
+      return;
+    }
+
+    // Gửi giá trị đến hàm xử lý
+    if (
+      ratingDialogValue.criterion &&
+      ratingDialogValue.rowIndex !== null &&
+      ratingDialogValue.colIndex !== null
+    ) {
+      handleRateLaptopPair(
+        ratingDialogValue.criterion,
+        ratingDialogValue.rowIndex,
+        ratingDialogValue.colIndex,
+        value
+      );
+      resetRatingDialog();
+      setCustomRatingValue("");
+      setCustomRatingError("");
+    }
+  };
+
+  // Cập nhật hàm resetRatingDialog để reset cả giá trị tùy chỉnh
+  const resetRatingDialog = () => {
+    setRatingDialogValue({
+      isOpen: false,
+      criterion: null,
+      rowIndex: null,
+      colIndex: null,
+    });
+    setCustomRatingValue("");
+    setCustomRatingError("");
+  };
+
+  // Thêm hàm xuất Excel
+  const handleExportExcel = () => {
+    try {
+      // Tạo Workbook mới
+      const wb = XLSX.utils.book_new();
+
+      // Lấp danh sách laptop
+      const laptopNames = selectedLaptops.map((laptop) => laptop.name);
+
+      // Đảm bảo tất cả 6 tiêu chí được sử dụng
+      const allCriteria = [
+        "Hiệu năng",
+        "Giá",
+        "Màn hình",
+        "Pin",
+        "Thiết kế",
+        "Độ bền",
+      ];
+
+      // Tạo worksheet cho mỗi tiêu chí
+      allCriteria.forEach((criterion) => {
+        // Tạo mảng dữ liệu cho sheet
+        const sheetData = [];
+
+        // Thêm hàng tiêu đề với tên laptop
+        sheetData.push(["", ...laptopNames]);
+
+        // Phần tạo dữ liệu cho các ô phía dưới đường chéo chính
+        laptopNames.forEach((name, rowIndex) => {
+          const row = [name];
+          laptopNames.forEach((_, colIndex) => {
+            if (rowIndex === colIndex) {
+              // Đường chéo chính = 1
+              row.push("1");
+            } else if (rowIndex < colIndex) {
+              // Ô phía trên đường chéo chính - để trống cho người dùng nhập
+              row.push("");
+            } else {
+              // Ô phía dưới đường chéo chính - tự động tính nghịch đảo từ ô đối xứng
+              // Đổi vị trí cột và hàng để tạo tham chiếu đến ô đối xứng đúng
+              const oppositeColLetter = String.fromCharCode(65 + colIndex + 1);
+              const oppositeRowNumber = rowIndex + 2;
+
+              // Công thức nghịch đảo: =1/C2
+              row.push(`=1/${oppositeColLetter}${oppositeRowNumber}`);
+            }
+          });
+          sheetData.push(row);
+        });
+
+        // Tạo worksheet từ dữ liệu
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+        // Định dạng các ô cần nhập là màu vàng nhạt
+        const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+        for (let r = 1; r <= range.e.r; r++) {
+          for (let c = r + 1; c <= range.e.c; c++) {
+            const cellAddress = XLSX.utils.encode_cell({ r, c });
+            if (!ws[cellAddress]) continue;
+
+            if (r < c) {
+              // Các ô cần nhập
+              ws[cellAddress].s = {
+                fill: { fgColor: { rgb: "FFFFCC" } },
+                font: { color: { rgb: "000000" } },
+              };
+            }
+          }
+        }
+
+        // Thêm worksheet vào workbook
+        XLSX.utils.book_append_sheet(wb, ws, criterion);
+      });
+
+      // Xuất file Excel
+      const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const fileData = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(
+        fileData,
+        `laptop_evaluation_template_${new Date()
+          .toISOString()
+          .slice(0, 10)}.xlsx`
+      );
+
+      toast({
+        title: "Đã xuất mẫu đánh giá",
+        description:
+          "Hãy điền giá trị đánh giá vào file Excel và sau đó nhập lại",
+      });
+    } catch (error) {
+      console.error("Lỗi khi xuất file Excel:", error);
+      toast({
+        title: "Lỗi xuất file",
+        description: "Không thể xuất dữ liệu ra file Excel",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Thêm hàm nhập Excel
+  const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      try {
+        // Chuyển sang chế độ đánh giá thủ công nếu đang ở chế độ tự động
+        if (ratingMode === "auto") {
+          setRatingMode("manual");
+          initializeManualRatings(selectedLaptops, criteriaOrder);
+        }
+
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+
+        // Khởi tạo đối tượng đánh giá mới
+        const newRatings: ManualRatings = { ...manualRatings };
+        const newProgress: RatingProgressMap = { ...ratingProgress };
+
+        // Duyệt qua từng sheet (tiêu chí)
+        for (const criterion of criteriaOrder) {
+          // Kiểm tra xem có sheet nào khớp với tên tiêu chí không
+          if (workbook.SheetNames.includes(criterion)) {
+            const worksheet = workbook.Sheets[criterion];
+            const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, {
+              header: 1,
+            });
+
+            if (jsonData.length <= 1) {
+              // Sheet rỗng hoặc chỉ có tiêu đề
+              continue;
+            }
+
+            // Lấy danh sách laptop từ hàng đầu tiên
+            const headerRow = jsonData[0] as string[];
+            const laptopNames = headerRow.slice(1); // Bỏ qua ô đầu tiên
+
+            // Tạo bản đồ ánh xạ tên laptop sang index
+            const laptopIndexMap = new Map<string, number>();
+            selectedLaptops.forEach((laptop, index) => {
+              laptopIndexMap.set(laptop.name, index);
+            });
+
+            // Đọc các giá trị từ ma trận
+            let completedCount = 0;
+
+            // Duyệt qua các hàng dữ liệu
+            for (let i = 1; i < jsonData.length; i++) {
+              const row = jsonData[i] as (string | number)[];
+              if (!row || row.length <= 1) continue;
+
+              const rowLaptopName = row[0] as string;
+              const rowIndex = laptopIndexMap.get(rowLaptopName);
+
+              if (rowIndex === undefined) continue; // Không tìm thấy laptop
+
+              // Duyệt qua các ô giá trị
+              for (let j = 1; j < row.length; j++) {
+                const colLaptopName = laptopNames[j - 1];
+                const colIndex = laptopIndexMap.get(colLaptopName);
+
+                if (colIndex === undefined) continue;
+
+                // Chỉ xử lý các ô phía trên đường chéo chính
+                if (rowIndex < colIndex) {
+                  const cellValue = row[j];
+                  if (cellValue !== undefined && cellValue !== "") {
+                    // Xử lý giá trị có thể là số hoặc chuỗi
+                    let value: number;
+
+                    if (typeof cellValue === "number") {
+                      value = cellValue;
+                    } else {
+                      // Xử lý trường hợp giá trị là phân số (vd: "1/3")
+                      const fractionMatch =
+                        String(cellValue).match(/^(\d+)\/(\d+)$/);
+                      if (fractionMatch) {
+                        const [_, numerator, denominator] = fractionMatch;
+                        value = parseInt(numerator) / parseInt(denominator);
+                      } else {
+                        // Thử chuyển đổi sang số
+                        value = parseFloat(String(cellValue));
+                      }
+                    }
+
+                    // Kiểm tra giá trị hợp lệ
+                    if (!isNaN(value) && value > 0 && value <= 9) {
+                      // Cập nhật giá trị ma trận
+                      newRatings[criterion][rowIndex][colIndex] = value;
+                      newRatings[criterion][colIndex][rowIndex] = 1 / value;
+                      completedCount++;
+                    }
+                  }
+                }
+              }
+            }
+
+            // Cập nhật tiến độ
+            const total = newProgress[criterion]?.total || 0;
+            newProgress[criterion] = {
+              completed: Math.min(completedCount, total),
+              total,
+              percentage: Math.min(
+                Math.round((completedCount / total) * 100),
+                100
+              ),
+            };
+          }
+        }
+
+        // Cập nhật state
+        setManualRatings(newRatings);
+        setRatingProgress(newProgress);
+
+        // Chọn tiêu chí đầu tiên làm active (hoặc tiêu chí chưa hoàn thành)
+        for (const criterion of criteriaOrder) {
+          if (
+            newProgress[criterion]?.completed < newProgress[criterion]?.total
+          ) {
+            setActiveCriterion(criterion);
+            break;
+          }
+        }
+
+        toast({
+          title: "Nhập dữ liệu thành công",
+          description: "Đã nhập dữ liệu đánh giá từ file Excel",
+        });
+
+        // Chuyển tab sang "rating" nếu đang ở tab "selection"
+        if (activeTab === "selection") {
+          setActiveTab("rating");
+        }
+      } catch (error) {
+        console.error("Lỗi khi nhập file Excel:", error);
+        toast({
+          title: "Lỗi nhập file",
+          description: "Không thể đọc dữ liệu từ file Excel",
+          variant: "destructive",
+        });
+      }
+
+      // Reset input file
+      event.target.value = "";
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
+
   // Render component UI
   return (
     <motion.div
@@ -1036,6 +1513,18 @@ const resetRatingDialog = () => {
       {/* Main content when not loading and no error */}
       {!loading && !error && (
         <div className="max-w-6xl mx-auto">
+          {/* Thêm button hiển thị ma trận tiêu chí sau phần header */}
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="outline"
+              onClick={handleOpenCriteriaMatrix}
+              className="flex items-center gap-2"
+            >
+              <Calculator className="w-4 h-4" />
+              Xem phân tích tiêu chí
+            </Button>
+          </div>
+
           <motion.div variants={itemVariants}>
             <div className="flex flex-col mb-6 md:flex-row md:items-center md:justify-between">
               <div>
@@ -1117,13 +1606,13 @@ const resetRatingDialog = () => {
                             <Card
                               key={laptop.id}
                               className={`
-                                cursor-pointer transition-all duration-200 
-                                ${
-                                  isSelected
-                                    ? "ring-2 ring-blue-500 bg-blue-50"
-                                    : "hover:bg-slate-50"
-                                }
-                              `}
+                              cursor-pointer transition-all duration-200 
+                              ${
+                                isSelected
+                                  ? "ring-2 ring-blue-500 bg-blue-50"
+                                  : "hover:bg-slate-50"
+                              }
+                            `}
                               onClick={() => handleToggleLaptop(laptop)}
                             >
                               <CardContent className="flex items-start gap-4 p-4">
@@ -1224,6 +1713,37 @@ const resetRatingDialog = () => {
                         ? "Hệ thống sẽ tự động đánh giá các laptop dựa trên thuộc tính kỹ thuật"
                         : "Đánh giá từng cặp laptop cho mỗi tiêu chí để có kết quả chính xác nhất"}
                     </CardDescription>
+
+                    {/* Thêm nút xuất/nhập Excel */}
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Button
+                        onClick={handleExportExcel}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <Database className="w-4 h-4" />
+                        Xuất mẫu Excel
+                      </Button>
+
+                      <div className="relative">
+                        <input
+                          type="file"
+                          id="import-excel"
+                          accept=".xlsx, .xls"
+                          onChange={handleImportExcel}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-2"
+                        >
+                          <Database className="w-4 h-4" />
+                          Nhập từ Excel
+                        </Button>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {ratingMode === "auto" ? (
@@ -1296,14 +1816,14 @@ const resetRatingDialog = () => {
                                 key={criterion}
                                 variant={isActive ? "default" : "outline"}
                                 className={`
-                                  cursor-pointer px-3 py-1 
-                                  ${isActive ? "bg-blue-500" : ""} 
-                                  ${
-                                    progress === 100
-                                      ? "border-green-500 text-green-700"
-                                      : ""
-                                  }
-                                `}
+                                cursor-pointer px-3 py-1 
+                                ${isActive ? "bg-blue-500" : ""} 
+                                ${
+                                  progress === 100
+                                    ? "border-green-500 text-green-700"
+                                    : ""
+                                }
+                              `}
                                 onClick={() => setActiveCriterion(criterion)}
                               >
                                 <Icon className="h-3.5 w-3.5 mr-1" />
@@ -1347,9 +1867,16 @@ const resetRatingDialog = () => {
                           <div className="space-y-6">
                             <Alert className="border-blue-200 bg-blue-50">
                               <Info className="w-4 h-4" />
-                              <AlertTitle>Bảng ma trận so sánh cho tiêu chí: <span className="font-bold">{activeCriterion}</span></AlertTitle>
+                              <AlertTitle>
+                                Bảng ma trận so sánh cho tiêu chí:{" "}
+                                <span className="font-bold">
+                                  {activeCriterion}
+                                </span>
+                              </AlertTitle>
                               <AlertDescription>
-                                So sánh các laptop theo hàng với các laptop theo cột. Chọn giá trị để thể hiện laptop ở hàng tốt hơn/kém hơn laptop ở cột bao nhiêu lần.
+                                So sánh các laptop theo hàng với các laptop theo
+                                cột. Chọn giá trị để thể hiện laptop ở hàng tốt
+                                hơn/kém hơn laptop ở cột bao nhiêu lần.
                               </AlertDescription>
                             </Alert>
 
@@ -1357,15 +1884,23 @@ const resetRatingDialog = () => {
                             <div className="flex items-center justify-between">
                               <div>
                                 <h3 className="font-medium">Ma trận so sánh</h3>
-                                <p className="text-sm text-slate-500">Điền các ô còn trống, các ô đối xứng sẽ tự động cập nhật</p>
+                                <p className="text-sm text-slate-500">
+                                  Điền các ô còn trống, các ô đối xứng sẽ tự
+                                  động cập nhật
+                                </p>
                               </div>
                               <div className="text-sm text-slate-600">
-                                Hoàn thành: {ratingProgress[activeCriterion]?.completed || 0}/{ratingProgress[activeCriterion]?.total || 0}
+                                Hoàn thành:{" "}
+                                {ratingProgress[activeCriterion]?.completed ||
+                                  0}
+                                /{ratingProgress[activeCriterion]?.total || 0}
                               </div>
                             </div>
-                            
+
                             <Progress
-                              value={ratingProgress[activeCriterion]?.percentage || 0}
+                              value={
+                                ratingProgress[activeCriterion]?.percentage || 0
+                              }
                               className="h-2"
                             />
 
@@ -1375,88 +1910,137 @@ const resetRatingDialog = () => {
                                 <thead>
                                   <tr className="bg-slate-100">
                                     <th className="p-2 font-medium text-left border text-slate-700">
-                                      {activeCriterion} 
+                                      {activeCriterion}
                                     </th>
                                     {selectedLaptops.map((laptop, index) => (
-                                      <th key={laptop.id} className="p-2 font-medium text-center border text-slate-700">
+                                      <th
+                                        key={laptop.id}
+                                        className="p-2 font-medium text-center border text-slate-700"
+                                      >
                                         <div className="flex flex-col items-center">
                                           <span className="inline-flex items-center justify-center w-6 h-6 mb-1 text-blue-700 bg-blue-100 rounded-full">
-                                            {String.fromCharCode(65 + index)} {/* A, B, C, etc. */}
+                                            {String.fromCharCode(65 + index)}{" "}
+                                            {/* A, B, C, etc. */}
                                           </span>
-                                          <span className="text-xs">{laptop.name.length > 15 ? `${laptop.name.substring(0, 15)}...` : laptop.name}</span>
+                                          <span className="text-xs">
+                                            {laptop.name.length > 15
+                                              ? `${laptop.name.substring(
+                                                  0,
+                                                  15
+                                                )}...`
+                                              : laptop.name}
+                                          </span>
                                         </div>
                                       </th>
                                     ))}
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {selectedLaptops.map((rowLaptop, rowIndex) => (
-                                    <tr key={rowLaptop.id} className={rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                                      <td className="p-2 font-medium border">
-                                        <div className="flex items-center gap-2">
-                                          <span className="inline-flex items-center justify-center w-6 h-6 text-blue-700 bg-blue-100 rounded-full">
-                                            {String.fromCharCode(65 + rowIndex)} {/* A, B, C, etc. */}
-                                          </span>
-                                          <span>{rowLaptop.name}</span>
-                                        </div>
-                                      </td>
-                                      {selectedLaptops.map((colLaptop, colIndex) => {
-                                        const value = manualRatings[activeCriterion]?.[rowIndex]?.[colIndex];
-                                        const isEditable = rowIndex !== colIndex && rowIndex < colIndex;
-                                        const cellClass = rowIndex === colIndex 
-                                          ? "bg-slate-100 text-center font-medium" 
-                                          : isEditable
-                                            ? "bg-white cursor-pointer hover:bg-blue-50" 
-                                            : "bg-slate-50";
+                                  {selectedLaptops.map(
+                                    (rowLaptop, rowIndex) => (
+                                      <tr
+                                        key={rowLaptop.id}
+                                        className={
+                                          rowIndex % 2 === 0
+                                            ? "bg-white"
+                                            : "bg-slate-50"
+                                        }
+                                      >
+                                        <td className="p-2 font-medium border">
+                                          <div className="flex items-center gap-2">
+                                            <span className="inline-flex items-center justify-center w-6 h-6 text-blue-700 bg-blue-100 rounded-full">
+                                              {String.fromCharCode(
+                                                65 + rowIndex
+                                              )}{" "}
+                                              {/* A, B, C, etc. */}
+                                            </span>
+                                            <span>{rowLaptop.name}</span>
+                                          </div>
+                                        </td>
+                                        {selectedLaptops.map(
+                                          (colLaptop, colIndex) => {
+                                            const value =
+                                              manualRatings[activeCriterion]?.[
+                                                rowIndex
+                                              ]?.[colIndex];
+                                            const isEditable =
+                                              rowIndex !== colIndex &&
+                                              rowIndex < colIndex;
+                                            const cellClass =
+                                              rowIndex === colIndex
+                                                ? "bg-slate-100 text-center font-medium"
+                                                : isEditable
+                                                ? "bg-white cursor-pointer hover:bg-blue-50"
+                                                : "bg-slate-50";
 
-                                        // Format the display value
-                                        const displayValue = rowIndex === colIndex 
-                                          ? "1" 
-                                          : typeof value === "number" 
-                                            ? value < 1 
-                                              ? `1/${Math.round(1/value)}` 
-                                              : value.toString()
-                                            : "?";
+                                            // Format the display value
+                                            const displayValue =
+                                              rowIndex === colIndex
+                                                ? "1"
+                                                : typeof value === "number"
+                                                ? value < 1
+                                                  ? `1/${Math.round(1 / value)}`
+                                                  : value.toString()
+                                                : "?";
 
-                                        return (
-                                          <td 
-                                            key={`${rowLaptop.id}-${colLaptop.id}`}
-                                            className={`p-2 border ${cellClass}`}
-                                            onClick={() => {
-                                              if (isEditable) {
-                                                // Show a selection dialog or dropdown
-                                                openRatingDialog(activeCriterion, rowIndex, colIndex);
-                                              }
-                                            }}
-                                          >
-                                            {isEditable ? (
-                                              <div className={`w-full h-full flex items-center justify-center rounded ${value === null ? 'bg-yellow-50 text-yellow-600' : 'bg-blue-50 text-blue-700'}`}>
-                                                {displayValue}
-                                              </div>
-                                            ) : (
-                                              <div className="w-full text-center text-slate-600">
-                                                {displayValue}
-                                              </div>
-                                            )}
-                                          </td>
-                                        );
-                                      })}
-                                    </tr>
-                                  ))}
+                                            return (
+                                              <td
+                                                key={`${rowLaptop.id}-${colLaptop.id}`}
+                                                className={`p-2 border ${cellClass}`}
+                                                onClick={() => {
+                                                  if (isEditable) {
+                                                    // Show a selection dialog or dropdown
+                                                    openRatingDialog(
+                                                      activeCriterion,
+                                                      rowIndex,
+                                                      colIndex
+                                                    );
+                                                  }
+                                                }}
+                                              >
+                                                {isEditable ? (
+                                                  <div
+                                                    className={`w-full h-full flex items-center justify-center rounded ${
+                                                      value === null
+                                                        ? "bg-yellow-50 text-yellow-600"
+                                                        : "bg-blue-50 text-blue-700"
+                                                    }`}
+                                                  >
+                                                    {displayValue}
+                                                  </div>
+                                                ) : (
+                                                  <div className="w-full text-center text-slate-600">
+                                                    {displayValue}
+                                                  </div>
+                                                )}
+                                              </td>
+                                            );
+                                          }
+                                        )}
+                                      </tr>
+                                    )
+                                  )}
                                 </tbody>
                               </table>
                             </div>
 
                             {/* Legend */}
                             <div className="mt-4">
-                              <h4 className="mb-2 text-sm font-medium">Thang điểm:</h4>
+                              <h4 className="mb-2 text-sm font-medium">
+                                Thang điểm:
+                              </h4>
                               <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
                                 {RATING_SCALE.map((rating) => (
-                                  <div key={rating.value} className="flex items-center gap-1 text-sm">
+                                  <div
+                                    key={rating.value}
+                                    className="flex items-center gap-1 text-sm"
+                                  >
                                     <span className="flex items-center justify-center w-8 h-6 border border-blue-100 rounded bg-blue-50">
                                       {rating.display || rating.value}
                                     </span>
-                                    <span className="text-slate-600">{rating.label}</span>
+                                    <span className="text-slate-600">
+                                      {rating.label}
+                                    </span>
                                   </div>
                                 ))}
                               </div>
@@ -1467,7 +2051,8 @@ const resetRatingDialog = () => {
                             <Info className="w-4 h-4" />
                             <AlertTitle>Chọn một tiêu chí</AlertTitle>
                             <AlertDescription>
-                              Vui lòng chọn một tiêu chí từ danh sách trên để bắt đầu đánh giá.
+                              Vui lòng chọn một tiêu chí từ danh sách trên để
+                              bắt đầu đánh giá.
                             </AlertDescription>
                           </Alert>
                         )}
@@ -1517,27 +2102,35 @@ const resetRatingDialog = () => {
             >
               Hủy
             </Button>
-            <Button onClick={handleConfirmModeChange}>
-              Xác nhận
-            </Button>
+            <Button onClick={handleConfirmModeChange}>Xác nhận</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Thêm Dialog để chọn giá trị so sánh */}
-      <Dialog open={!!ratingDialogValue.isOpen} onOpenChange={(open) => !open && resetRatingDialog()}>
+      <Dialog
+        open={!!ratingDialogValue.isOpen}
+        onOpenChange={(open) => !open && resetRatingDialog()}
+      >
         <DialogContent className="bg-white sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>So sánh laptop cho tiêu chí {ratingDialogValue.criterion}</DialogTitle>
+            <DialogTitle>
+              So sánh laptop cho tiêu chí {ratingDialogValue.criterion}
+            </DialogTitle>
             <DialogDescription>
-              Chọn mức độ chênh lệch giữa laptop {String.fromCharCode(65 + (ratingDialogValue.rowIndex ?? 0))} và laptop {String.fromCharCode(65 + (ratingDialogValue.colIndex ?? 0))}
+              Chọn mức độ chênh lệch giữa laptop{" "}
+              {String.fromCharCode(65 + (ratingDialogValue.rowIndex ?? 0))} và
+              laptop{" "}
+              {String.fromCharCode(65 + (ratingDialogValue.colIndex ?? 0))}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <p className="pb-2 font-medium text-center border-b">
-                Laptop {String.fromCharCode(65 + (ratingDialogValue.rowIndex ?? 0))} tốt hơn
+                Laptop{" "}
+                {String.fromCharCode(65 + (ratingDialogValue.rowIndex ?? 0))}{" "}
+                tốt hơn
               </p>
               {RATING_SCALE.slice(0, 4).map((rating) => (
                 <Button
@@ -1545,7 +2138,11 @@ const resetRatingDialog = () => {
                   variant="outline"
                   className="justify-between w-full"
                   onClick={() => {
-                    if (ratingDialogValue.criterion && ratingDialogValue.rowIndex !== null && ratingDialogValue.colIndex !== null) {
+                    if (
+                      ratingDialogValue.criterion &&
+                      ratingDialogValue.rowIndex !== null &&
+                      ratingDialogValue.colIndex !== null
+                    ) {
                       handleRateLaptopPair(
                         ratingDialogValue.criterion,
                         ratingDialogValue.rowIndex,
@@ -1557,20 +2154,28 @@ const resetRatingDialog = () => {
                   }}
                 >
                   <span>{rating.label}</span>
-                  <span className="px-2 rounded bg-blue-50">{rating.display || rating.value}</span>
+                  <span className="px-2 rounded bg-blue-50">
+                    {rating.display || rating.value}
+                  </span>
                 </Button>
               ))}
             </div>
-            
+
             <div className="space-y-2">
               <p className="pb-2 font-medium text-center border-b">
-                Laptop {String.fromCharCode(65 + (ratingDialogValue.colIndex ?? 0))} tốt hơn
+                Laptop{" "}
+                {String.fromCharCode(65 + (ratingDialogValue.colIndex ?? 0))}{" "}
+                tốt hơn
               </p>
               <Button
                 variant="outline"
                 className="justify-between w-full"
                 onClick={() => {
-                  if (ratingDialogValue.criterion && ratingDialogValue.rowIndex !== null && ratingDialogValue.colIndex !== null) {
+                  if (
+                    ratingDialogValue.criterion &&
+                    ratingDialogValue.rowIndex !== null &&
+                    ratingDialogValue.colIndex !== null
+                  ) {
                     handleRateLaptopPair(
                       ratingDialogValue.criterion,
                       ratingDialogValue.rowIndex,
@@ -1584,14 +2189,18 @@ const resetRatingDialog = () => {
                 <span>Ngang nhau</span>
                 <span className="px-2 rounded bg-gray-50">1</span>
               </Button>
-              
+
               {RATING_SCALE.slice(5).map((rating) => (
                 <Button
                   key={`dialog-b-${rating.value}`}
                   variant="outline"
                   className="justify-between w-full"
                   onClick={() => {
-                    if (ratingDialogValue.criterion && ratingDialogValue.rowIndex !== null && ratingDialogValue.colIndex !== null) {
+                    if (
+                      ratingDialogValue.criterion &&
+                      ratingDialogValue.rowIndex !== null &&
+                      ratingDialogValue.colIndex !== null
+                    ) {
                       handleRateLaptopPair(
                         ratingDialogValue.criterion,
                         ratingDialogValue.rowIndex,
@@ -1603,11 +2212,469 @@ const resetRatingDialog = () => {
                   }}
                 >
                   <span>{rating.label}</span>
-                  <span className="px-2 rounded bg-indigo-50">{rating.display || rating.value}</span>
+                  <span className="px-2 rounded bg-indigo-50">
+                    {rating.display || rating.value}
+                  </span>
                 </Button>
               ))}
             </div>
           </div>
+          <div className="pt-4 mt-4 border-t">
+            <h4 className="mb-2 text-sm font-medium">
+              Nhập giá trị tùy chỉnh:
+            </h4>
+            <div className="flex gap-2">
+              <div className="flex-grow">
+                <input
+                  type="text"
+                  className={`w-full px-3 py-2 border rounded-md ${
+                    customRatingError ? "border-red-300" : "border-slate-300"
+                  }`}
+                  placeholder="Nhập số hoặc phân số (vd: 2.5 hoặc 1/3)"
+                  value={customRatingValue}
+                  onChange={(e) => {
+                    setCustomRatingValue(e.target.value);
+                    setCustomRatingError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleCustomRatingSubmit();
+                    }
+                  }}
+                />
+                {customRatingError && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {customRatingError}
+                  </p>
+                )}
+              </div>
+              <Button
+                onClick={handleCustomRatingSubmit}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Áp dụng
+              </Button>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Nhập số thập phân hoặc phân số trong khoảng từ 1/9 đến 9. Nhấn
+              Enter hoặc nút Áp dụng để xác nhận.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog hiển thị ma trận tiêu chí */}
+      <Dialog
+        open={showCriteriaMatrixDialog}
+        onOpenChange={setShowCriteriaMatrixDialog}
+      >
+        <DialogContent className="max-w-[90vh] max-h-[90vh] min-w-[80vw] overflow-auto bg-white">
+          <DialogHeader>
+            <DialogTitle>Chi tiết phân tích tiêu chí (AHP)</DialogTitle>
+            <DialogDescription>
+              Phân tích thứ bậc các tiêu chí để xác định trọng số
+            </DialogDescription>
+          </DialogHeader>
+
+          {criteriaData ? (
+            <div className="space-y-6">
+              {/* Hiển thị thẻ tổng quan */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center">
+                    <Calculator className="w-5 h-5 mr-2 text-blue-500" />
+                    Tổng quan kết quả phân tích
+                  </CardTitle>
+                  <CardDescription>
+                    Kết quả tính toán dựa trên ma trận so sánh từng cặp tiêu chí
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <Alert
+                        className={
+                          criteriaData.consistency.is_consistent
+                            ? "bg-green-50 border-green-200"
+                            : "bg-amber-50 border-amber-200"
+                        }
+                      >
+                        {criteriaData.consistency.is_consistent ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        )}
+                        <AlertTitle>Độ nhất quán (Consistency)</AlertTitle>
+                        <AlertDescription className="text-sm">
+                          {criteriaData.consistency.message}
+                          <div className="mt-1">
+                            <span className="inline-block w-32">
+                              Chỉ số CI:
+                            </span>{" "}
+                            {criteriaData.consistency.CI.toFixed(3)} <br />
+                            <span className="inline-block w-32">
+                              Chỉ số CR:
+                            </span>{" "}
+                            {criteriaData.consistency.CR.toFixed(3)} <br />
+                            <span className="inline-block w-32">
+                              Lambda max:
+                            </span>{" "}
+                            {criteriaData.consistency.lambda_max.toFixed(3)}
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+
+                    <div>
+                      <h3 className="mb-2 text-sm font-medium text-slate-700">
+                        Trọng số tiêu chí (theo thứ tự giảm dần)
+                      </h3>
+                      <div className="space-y-2">
+                        {criteriaData.weights.formatted.map((item: any) => (
+                          <div
+                            key={item.criterion}
+                            className="flex items-center justify-between"
+                          >
+                            <span className="text-slate-700">
+                              {item.criterion}
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="text-blue-600 bg-blue-50"
+                            >
+                              {item.percentage}%
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tabs hiển thị các ma trận */}
+              <Tabs
+                value={criteriaActiveTab}
+                onValueChange={setCriteriaActiveTab}
+              >
+                <TabsList className="w-full md:w-auto">
+                  <TabsTrigger value="matrix" className="flex items-center">
+                    <Table className="w-4 h-4 mr-1" />
+                    Ma trận gốc
+                  </TabsTrigger>
+                  <TabsTrigger value="normalized" className="flex items-center">
+                    <Table className="w-4 h-4 mr-1" />
+                    Ma trận chuẩn hóa
+                  </TabsTrigger>
+                  <TabsTrigger value="weights" className="flex items-center">
+                    <Calculator className="w-4 h-4 mr-1" />
+                    Trọng số chi tiết
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Tab nội dung ma trận gốc */}
+                <TabsContent value="matrix" className="mt-4">
+                  <div className="overflow-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100">
+                          <th className="p-2 text-left border">Tiêu chí</th>
+                          {criteriaData.matrix.criteria_order.map(
+                            (criterion: string) => (
+                              <th
+                                key={criterion}
+                                className="p-2 text-center border"
+                              >
+                                {criterion}
+                              </th>
+                            )
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {criteriaData.matrix.data.map(
+                          (row: number[], rowIndex: number) => (
+                            <tr
+                              key={rowIndex}
+                              className={
+                                rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
+                              }
+                            >
+                              <td className="p-2 font-medium border">
+                                {criteriaData.matrix.criteria_order[rowIndex]}
+                              </td>
+                              {row.map((cell: number, cellIndex: number) => (
+                                <td
+                                  key={cellIndex}
+                                  className="p-2 text-center border"
+                                >
+                                  {formatNumber(cell)}
+                                </td>
+                              ))}
+                            </tr>
+                          )
+                        )}
+                        <tr className="bg-slate-100">
+                          <td className="p-2 font-medium border">Tổng cột</td>
+                          {criteriaData.column_sums.map(
+                            (sum: number, index: number) => (
+                              <td
+                                key={index}
+                                className="p-2 font-medium text-center border"
+                              >
+                                {formatNumber(sum)}
+                              </td>
+                            )
+                          )}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </TabsContent>
+
+                {/* Tab nội dung ma trận chuẩn hóa */}
+                <TabsContent value="normalized" className="mt-4">
+                  <div className="overflow-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100">
+                          <th className="p-2 text-left border">Tiêu chí</th>
+                          {criteriaData.matrix.criteria_order.map(
+                            (criterion: string) => (
+                              <th
+                                key={criterion}
+                                className="p-2 text-center border"
+                              >
+                                {criterion}
+                              </th>
+                            )
+                          )}
+                          <th className="p-2 text-center border bg-blue-50">
+                            Trọng số
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {criteriaData.normalized_matrix.map(
+                          (row: number[], rowIndex: number) => (
+                            <tr
+                              key={rowIndex}
+                              className={
+                                rowIndex % 2 === 0 ? "bg-white" : "bg-slate-50"
+                              }
+                            >
+                              <td className="p-2 font-medium border">
+                                {criteriaData.matrix.criteria_order[rowIndex]}
+                              </td>
+                              {row.map((cell: number, cellIndex: number) => (
+                                <td
+                                  key={cellIndex}
+                                  className="p-2 text-center border"
+                                >
+                                  {formatNumber(cell)}
+                                </td>
+                              ))}
+                              <td className="p-2 font-medium text-center border bg-blue-50">
+                                {formatNumber(
+                                  criteriaData.weights.values[rowIndex]
+                                )}
+                                (
+                                {formatPercent(
+                                  criteriaData.weights.values[rowIndex]
+                                )}
+                                )
+                              </td>
+                            </tr>
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </TabsContent>
+
+                {/* Tab chi tiết trọng số */}
+                <TabsContent value="weights" className="mt-4">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div>
+                      <h3 className="mb-3 text-sm font-medium text-slate-700">
+                        Trọng số tiêu chí
+                      </h3>
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100">
+                            <th className="p-2 text-left border">Tiêu chí</th>
+                            <th className="p-2 text-center border">Trọng số</th>
+                            <th className="p-2 text-center border">
+                              Phần trăm
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {criteriaData.weights.formatted.map(
+                            (item: any, index: number) => (
+                              <tr
+                                key={index}
+                                className={
+                                  index % 2 === 0 ? "bg-white" : "bg-slate-50"
+                                }
+                              >
+                                <td className="p-2 border">{item.criterion}</td>
+                                <td className="p-2 text-center border">
+                                  {formatNumber(item.weight)}
+                                </td>
+                                <td className="p-2 text-center border">
+                                  {item.percentage}%
+                                </td>
+                              </tr>
+                            )
+                          )}
+                        </tbody>
+                      </table>
+
+                      {/* Biểu đồ tròn trọng số */}
+                      <div className="mt-6">
+                        <h3 className="mb-3 text-sm font-medium text-slate-700">
+                          Biểu đồ trọng số
+                        </h3>
+                        <div className="p-4 bg-white border rounded-md">
+                          {criteriaData.weights.formatted && (
+                            <div style={{ height: "280px" }}>
+                              <Pie
+                                data={{
+                                  labels: criteriaData.weights.formatted.map(
+                                    (w: any) => w.criterion
+                                  ),
+                                  datasets: [
+                                    {
+                                      data: criteriaData.weights.formatted.map(
+                                        (w: any) => w.percentage
+                                      ),
+                                      backgroundColor: [
+                                        "#3498db",
+                                        "#e74c3c",
+                                        "#2ecc71",
+                                        "#f1c40f",
+                                        "#9b59b6",
+                                        "#1abc9c",
+                                        "#d35400",
+                                        "#34495e",
+                                        "#16a085",
+                                        "#c0392b",
+                                      ],
+                                      borderWidth: 1,
+                                    },
+                                  ],
+                                }}
+                                options={{
+                                  responsive: true,
+                                  maintainAspectRatio: true,
+                                  plugins: {
+                                    legend: {
+                                      position: "right",
+                                      labels: {
+                                        font: {
+                                          size: 11,
+                                        },
+                                        padding: 15,
+                                      },
+                                    },
+                                    tooltip: {
+                                      callbacks: {
+                                        label: (context) => {
+                                          const label = context.label || "";
+                                          const value = context.parsed || 0;
+                                          return `${label}: ${value.toFixed(
+                                            2
+                                          )}%`;
+                                        },
+                                      },
+                                    },
+                                  },
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="mb-3 text-sm font-medium text-slate-700">
+                        Vector nhất quán
+                      </h3>
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100">
+                            <th className="p-2 text-left border">Tiêu chí</th>
+                            <th className="p-2 text-center border">λ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {criteriaData.consistency.vector.map(
+                            (value: number, index: number) => (
+                              <tr
+                                key={index}
+                                className={
+                                  index % 2 === 0 ? "bg-white" : "bg-slate-50"
+                                }
+                              >
+                                <td className="p-2 border">
+                                  {criteriaData.matrix.criteria_order[index]}
+                                </td>
+                                <td className="p-2 text-center border">
+                                  {formatNumber(value)}
+                                </td>
+                              </tr>
+                            )
+                          )}
+                          <tr className="bg-blue-50">
+                            <td className="p-2 font-medium border">λ max</td>
+                            <td className="p-2 font-medium text-center border">
+                              {formatNumber(
+                                criteriaData.consistency.lambda_max
+                              )}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+
+                      <div className="mt-4">
+                        <Alert className="bg-slate-50">
+                          <Info className="w-4 h-4" />
+                          <AlertTitle>Kiểm tra nhất quán</AlertTitle>
+                          <AlertDescription className="text-sm">
+                            <div>
+                              <span className="inline-block w-40">
+                                Chỉ số nhất quán (CI):
+                              </span>
+                              {formatNumber(criteriaData.consistency.CI)} <br />
+                              <span className="inline-block w-40">
+                                Chỉ số ngẫu nhiên (RI):
+                              </span>
+                              {formatNumber(criteriaData.consistency.RI)} <br />
+                              <span className="inline-block w-40">
+                                Tỷ lệ nhất quán (CR):
+                              </span>
+                              {formatNumber(criteriaData.consistency.CR)} <br />
+                            </div>
+                            <div className="mt-1">
+                              <strong>Kết luận:</strong>{" "}
+                              {criteriaData.consistency.message}
+                            </div>
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          ) : (
+            <div className="py-8 text-center text-slate-500">
+              Không tìm thấy dữ liệu phân tích tiêu chí
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </motion.div>

@@ -1,261 +1,113 @@
+from typing import Dict, Any, List
 import numpy as np
 import traceback
-from typing import Dict, Any, List
 
-def calculate_lambda_max(input_data: Dict[str, Any]) -> Dict[str, Any]:
+def step2_calculate_lambda_max(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Calculate lambda max for each criterion matrix
+    Calculate λ_max and vector nhất quán for each criterion
     
     Args:
-        input_data: Results from stage5 with priority vectors
+        input_data: Dictionary containing original matrices and priority vectors
         
     Returns:
-        Dictionary containing lambda max values for each criterion
+        Dictionary with input_data plus lambda_max and consistency_vectors
     """
     try:
-        print("\n=== STAGE 6: CALCULATE LAMBDA MAX ===")
+        print("\n=== STAGE 6: CALCULATING LAMBDA MAX AND CONSISTENCY VECTORS ===")
         
-        # Extract data from stages 2-5
-        priority_vectors = input_data.get("priority_vectors", {})
+        # Extract necessary data
         original_matrices = input_data.get("original_matrices", {})
+        priority_vectors = input_data.get("priority_vectors", {})
         laptop_names = input_data.get("laptop_names", [])
-        criteria_weights = input_data.get("criteria_weights", {})
         
-        # Check required data
-        if not priority_vectors or not original_matrices:
-            print("ERROR: Missing required data from previous stages")
-            return {
-                "status": "error",
-                "message": "Không nhận được vector ưu tiên hoặc ma trận gốc từ các giai đoạn trước"
-            }
-        
-        # Log input summary
-        print(f"Đã nhận {len(priority_vectors)} vector ưu tiên và {len(original_matrices)} ma trận gốc")
-        print(f"Tiêu chí: {', '.join(criteria_weights.keys())}")
-        
-        # Calculate lambda max for each criterion
+        # Prepare output structures
         lambda_max_values = {}
         consistency_vectors = {}
         
-        for criterion, priority_vector in priority_vectors.items():
-            print(f"\nXử lý tiêu chí: {criterion}")
-            
-            # Skip if criterion not in original matrices
-            if criterion not in original_matrices:
-                print(f"WARNING: Không tìm thấy ma trận gốc cho {criterion}, bỏ qua")
+        # Process each criterion
+        for criterion, matrix in original_matrices.items():
+            if criterion not in priority_vectors:
+                print(f"Warning: No priority vector for criterion {criterion}")
                 continue
-                
-            # Get original matrix
-            original = original_matrices[criterion]
+            
+            priority = priority_vectors[criterion]
+            matrix_size = len(matrix)
             
             # Convert to numpy arrays
-            priority_np = np.array(priority_vector, dtype=float)
-            original_np = np.array(original, dtype=float)
+            A = np.array(matrix)
+            w = np.array(priority).reshape(-1, 1)  # Column vector
             
-            # Print original matrix for debugging
-            print(f"  Original matrix (first row): {original_np[0]}")
+            # Calculate weighted sum vector: A·w
+            weighted_sum = np.dot(A, w)
             
-            # Calculate weighted sum vector (Ax) - FIXED
-            weighted_sum = np.zeros_like(priority_np)
-            for i in range(len(priority_np)):
-                weighted_sum[i] = sum(original_np[i][j] * priority_np[j] for j in range(len(priority_np)))
-            
-            # Calculate consistency vector (Ax/x)
-            consistency_vector = np.zeros_like(priority_np)
-            for i in range(len(priority_np)):
-                if priority_np[i] > 0.000001:  # Avoid division by zero with better threshold
-                    consistency_vector[i] = weighted_sum[i] / priority_np[i]
+            # Calculate ratio vector for each component: (A·w)/w
+            ratio_vector = []
+            for i in range(len(w)):
+                if w[i][0] > 0:  # Avoid division by zero
+                    ratio_vector.append(weighted_sum[i][0] / w[i][0])
                 else:
-                    consistency_vector[i] = 0
-                    
-            # Print intermediate values for debugging
-            print(f"  Priority Vector: {[round(v, 4) for v in priority_np]}")
-            print(f"  Weighted Sum Vector: {[round(v, 4) for v in weighted_sum]}")
-            print(f"  Consistency Vector: {[round(v, 4) for v in consistency_vector]}")
+                    ratio_vector.append(matrix_size)  # Fallback if weight is zero
             
-            # Calculate lambda max (average of consistency vector)
-            # Filter out zeros and extreme values
-            valid_values = consistency_vector[(consistency_vector > 0) & (consistency_vector < 100)]
-            if len(valid_values) > 0:
-                lambda_max = float(np.mean(valid_values))
-            else:
-                # If matrix is perfectly consistent or we have no valid values
-                lambda_max = float(len(priority_np))
+            # Calculate λ_max as average of ratio vector
+            lambda_max = sum(ratio_vector) / len(ratio_vector) if ratio_vector else matrix_size
             
             # Store results
-            lambda_max_values[criterion] = lambda_max
-            consistency_vectors[criterion] = consistency_vector.tolist()
+            lambda_max_values[criterion] = float(lambda_max)
+            consistency_vectors[criterion] = ratio_vector
             
-            # Log the results
-            print(f"Vector ưu tiên cho {criterion}: {[round(v, 4) for v in priority_np]}")
-            print(f"Vector nhất quán cho {criterion}: {[round(v, 4) for v in consistency_vector]}")
-            print(f"Lambda max cho {criterion}: {round(lambda_max, 4)}")
+            # Log vector nhất quán và lambda max
+            print(f"\nVector nhất quán cho {criterion}:")
+            for i, value in enumerate(ratio_vector):
+                laptop_name = laptop_names[i] if i < len(laptop_names) else f"Laptop {i+1}"
+                print(f"  {laptop_name}: {value:.4f}")
+            
+            print(f"  λ max: {lambda_max:.4f}")
         
-        # Log summary
-        print("\nKết quả Stage 6:")
-        for criterion, lambda_max in lambda_max_values.items():
-            print(f"  {criterion}: Lambda Max = {round(lambda_max, 4)}")
+        # Prepare output - add new calculated values
+        output_data = input_data.copy()
+        output_data["lambda_max"] = lambda_max_values
+        output_data["consistency_vectors"] = consistency_vectors
         
-        # Create result structure combining data from stages 2-5
-        result = {
-            "status": "success",
-            "stage": "stage6",
-            # Data from stage6
-            "lambda_max": lambda_max_values,
-            "consistency_vectors": consistency_vectors,
-            # Data from previous stages
-            "priority_vectors": priority_vectors,
-            "normalized_matrices": input_data.get("normalized_matrices", {}),
-            "original_matrices": original_matrices,
-            "column_sums": input_data.get("column_sums", {}),
-            "matrices": input_data.get("matrices", {}),
-            "laptop_names": laptop_names,
-            "laptop_ids": input_data.get("laptop_ids", []),
-            "laptops": input_data.get("laptops", []),
-            "laptop_details": input_data.get("laptop_details", {}),
-            "criteria_weights": criteria_weights
-        }
+        print("\nStage 6 hoàn thành: Đã tính vector nhất quán và lambda max")
         
-        print(f"\nStage 6 hoàn thành: Đã tính Lambda Max cho {len(lambda_max_values)} tiêu chí")
-        
-        return result
+        return output_data
         
     except Exception as e:
         print(f"Stage 6 Exception: {str(e)}")
         traceback.print_exc()
         return {
             "status": "error",
-            "message": f"Lỗi khi tính Lambda Max: {str(e)}"
+            "message": f"Error calculating Lambda Max: {str(e)}"
         }
 
 def synthesize_priorities(stage5_result: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Tổng hợp ưu tiên của các tiêu chí để xếp hạng laptop
+    Chuẩn bị dữ liệu từ stage 5 để tính điểm tổng hợp ở các stage tiếp theo
     
     Parameters:
     - stage5_result: Kết quả từ Stage 5
     
     Returns:
-    - Dictionary chứa điểm tổng hợp cho từng laptop
+    - Dictionary chứa thông tin cần thiết cho stage tiếp theo
     """
     try:
-        print("\n=== STAGE 6: SYNTHESIZE PRIORITIES ===")
+        print("\n=== STAGE 6: PREPARE DATA FOR SYNTHESIS ===")
         
-        # Log input và debug
-        print(f"[STAGE 6] INPUT KEYS: {list(stage5_result.keys())}")
+        # Gọi hàm tính Lambda Max và vector nhất quán
+        result = step2_calculate_lambda_max(stage5_result)
         
-        # Khởi tạo kết quả
-        result = {
-            "status": "success",
-            "stage": "stage6",
-            "synthesized_scores": {},
-            "laptop_details": stage5_result.get("laptop_details", {})
-        }
+        # Chỉ log thông tin, không tính xếp hạng hay CI/CR
+        print(f"\n[STAGE 6] Đã chuẩn bị dữ liệu với {len(result.get('priority_vectors', {}))} vector ưu tiên")
+        print(f"[STAGE 6] Đã tính vector nhất quán cho {len(result.get('consistency_vectors', {}))} tiêu chí")
         
-        # Get priority vectors - check multiple possible locations
-        priority_vectors = stage5_result.get("priority_vectors", {})
-        
-        # If no priority_vectors found directly, try to build them from normalized_matrices
-        if not priority_vectors and "normalized_matrices" in stage5_result:
-            print("DEBUG stage6 - Building priority vectors from normalized matrices")
-            normalized_matrices = stage5_result.get("normalized_matrices", {})
-            priority_vectors = {}
-            
-            for criterion, data in normalized_matrices.items():
-                priority_vectors[criterion] = {}
-                for laptop_name, scores in data.items():
-                    priority_vectors[criterion][laptop_name] = scores.get("normalized_priority", 0)
-        
-        # If still no priority_vectors, try to use the priority_vectors directly from stage5_result
-        if not priority_vectors and all(k in stage5_result for k in ["Hiệu năng", "Giá", "Màn hình", "Thiết kế", "Pin"]):
-            print("DEBUG stage6 - Using criteria keys directly as priority vectors")
-            priority_vectors = {k: v for k, v in stage5_result.items() 
-                             if k in ["Hiệu năng", "Giá", "Màn hình", "Thiết kế", "Pin"]}
-        
-        # Get criteria weights
-        weights = {}
-        # First try step1_weights (older format)
-        if "step1_weights" in stage5_result and "values" in stage5_result["step1_weights"]:
-            weights = stage5_result["step1_weights"]["values"]
-        # Then try criteria_weights (newer format)
-        elif "criteria_weights" in stage5_result:
-            weights = stage5_result["criteria_weights"]
-        # Last resort, use normalized_weights
-        elif "normalized_weights" in stage5_result:
-            weights = stage5_result["normalized_weights"]
-        
-        if not priority_vectors:
-            print("ERROR stage6 - Không tìm thấy vector ưu tiên")
-            return {"status": "error", "message": "Không tìm thấy vector nhất quán hoặc ma trận từ Stage 5"}
-        
-        print(f"DEBUG stage6 - Đã tìm thấy {len(priority_vectors)} vector ưu tiên")
-        print(f"DEBUG stage6 - Criteria: {list(priority_vectors.keys())}")
-        
-        # Get laptop names using multiple methods
-        laptop_names = []
-        
-        # Method 1: Try to get from priority_vectors
-        if priority_vectors:
-            first_criterion = next(iter(priority_vectors))
-            if first_criterion in priority_vectors:
-                if isinstance(priority_vectors[first_criterion], dict):
-                    laptop_names = list(priority_vectors[first_criterion].keys())
-        
-        # Method 2: If not found, try from laptop_details
-        if not laptop_names and "laptop_details" in stage5_result:
-            laptop_details = stage5_result["laptop_details"]
-            laptop_names = [details.get("name", f"Laptop {id}") for id, details in laptop_details.items()]
-        
-        # Method 3: Last resort, try from laptop_names
-        if not laptop_names:
-            laptop_names = stage5_result.get("laptop_names", [])
-        
-        # Calculate synthesized scores for each laptop
-        for laptop_name in laptop_names:
-            total_score = 0
-            criteria_scores = {}
-            
-            # Sum weighted priority for each criterion
-            for criterion, criterion_priorities in priority_vectors.items():
-                # Get weight for this criterion
-                weight = weights.get(criterion, 0.2)  # Default equal weight if missing
-                
-                # Get priority for this laptop
-                priority = 0
-                if isinstance(criterion_priorities, dict):
-                    priority = criterion_priorities.get(laptop_name, 0)
-                    if isinstance(priority, dict):
-                        priority = priority.get("normalized_priority", 0)
-                
-                # Calculate weighted score
-                weighted_score = priority * weight
-                criteria_scores[criterion] = weighted_score
-                total_score += weighted_score
-            
-            # Store synthesized score
-            result["synthesized_scores"][laptop_name] = {
-                "total_score": round(total_score, 4),
-                "criteria_scores": {k: round(v, 4) for k, v in criteria_scores.items()}
-            }
-        
-        # Copy additional attributes
-        for key in ["step1_weights", "priority_vectors"]:
-            if key in stage5_result:
-                result[key] = stage5_result[key]
-                
-        # Add stage data for later stages
-        result["step5_data"] = {
-            "priority_vectors": priority_vectors,
-            "criteria_weights": weights
-        }
-        
-        # Log output
-        print(f"[STAGE 6] OUTPUT KEYS: {list(result.keys())}")
-        print(f"[STAGE 6] Synthesized scores for {len(result['synthesized_scores'])} laptops")
+        # Đảm bảo chuyển các trọng số PA từ stage 5 sang
+        if "criteria_priority_tables" in stage5_result:
+            result["criteria_priority_tables"] = stage5_result["criteria_priority_tables"]
+            print(f"[STAGE 6] Đã chuyển bảng trọng số PA cho {len(result['criteria_priority_tables'])} tiêu chí")
         
         return result
         
     except Exception as e:
         print(f"Stage 6 Exception: {str(e)}")
         traceback.print_exc()
-        return {"status": "error", "message": f"Lỗi khi tổng hợp ưu tiên: {str(e)}"}
+        return {"status": "error", "message": f"Lỗi khi chuẩn bị dữ liệu: {str(e)}"}

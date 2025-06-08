@@ -1,0 +1,71 @@
+### Office với ma trận so sánh ưu tiên Hiệu năng và Giá
+POST http://localhost:5000/api/process-comparisons
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 15000000,
+  "toBudget": 25000000,
+  "performance": "smooth",
+  "design": "lightweight",
+  "fromScreenSize": 13,
+  "toScreenSize": 14.9,
+  "build_quality": "medium",
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": "3/2" },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": 3 },
+    { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": 5 },
+    { "row": "Giá", "column": "Màn hình", "value": 2 },
+    { "row": "Giá", "column": "Pin", "value": "3/2" },
+    { "row": "Giá", "column": "Thiết kế", "value": 3 },
+    { "row": "Giá", "column": "Độ bền", "value": 4 },
+    { "row": "Màn hình", "column": "Pin", "value": "2/3" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "3/2" },
+    { "row": "Màn hình", "column": "Độ bền", "value": 2 },
+    { "row": "Pin", "column": "Thiết kế", "value": 2 },
+    { "row": "Pin", "column": "Độ bền", "value": 3 },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+  ]
+}
+
+### Office với ma trận so sánh cân bằng cho các tiêu chí
+POST http://localhost:5000/api/process-comparisons
+Content-Type: application/json
+
+{
+  "usage": "office",
+  "fromBudget": 12000000,
+  "toBudget": 20000000,
+  "performance": "basic",
+  "design": "standard",
+  "fromScreenSize": 14,
+  "toScreenSize": 16,
+  "build_quality": "medium",
+  "comparisons": [
+    { "row": "Hiệu năng", "column": "Giá", "value": "5/4" },
+    { "row": "Hiệu năng", "column": "Màn hình", "value": "4/3" },
+    { "row": "Hiệu năng", "column": "Pin", "value": "3/2" },
+    { "row": "Hiệu năng", "column": "Thiết kế", "value": 3 },
+    { "row": "Hiệu năng", "column": "Độ bền", "value": 4 },
+    { "row": "Giá", "column": "Màn hình", "value": 1 },
+    { "row": "Giá", "column": "Pin", "value": "5/4" },
+    { "row": "Giá", "column": "Thiết kế", "value": "5/2" },
+    { "row": "Giá", "column": "Độ bền", "value": 3 },
+    { "row": "Màn hình", "column": "Pin", "value": "5/4" },
+    { "row": "Màn hình", "column": "Thiết kế", "value": "5/2" },
+    { "row": "Màn hình", "column": "Độ bền", "value": 3 },
+    { "row": "Pin", "column": "Thiết kế", "value": 2 },
+    { "row": "Pin", "column": "Độ bền", "value": "5/2" },
+    { "row": "Thiết kế", "column": "Độ bền", "value": "4/3" }
+  ]
+}
+
+### API PHỤ TRỢ - LỌC LAPTOP
+
+### Lấy danh sách laptop văn phòng tầm trung
+GET http://localhost:5000/api/laptops-by-usage?usage=office&fromBudget=15000000&toBudget=20000000&performance=smooth&design=lightweight&fromScreenSize=13&toScreenSize=15
+
+### Lấy danh sách laptop văn phòng cao cấp (mở rộng)
+GET http://localhost:5000/api/laptops-by-usage?usage=office&fromBudget=20000000&toBudget=40000000&performance=advanced&fromScreenSize=13&toScreenSize=17

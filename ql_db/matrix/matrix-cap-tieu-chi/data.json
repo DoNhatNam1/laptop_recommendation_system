@@ -1,0 +1,179 @@
+{
+  "mobility": [
+    {
+      "comparisons": [
+        { "row": "Hiệu năng", "column": "Giá", "value": "3/2" },
+        { "row": "Hiệu năng", "column": "Màn hình", "value": 2 },
+        { "row": "Hiệu năng", "column": "Pin", "value": "2/5" },
+        { "row": "Hiệu năng", "column": "Thiết kế", "value": "1/2" },
+        { "row": "Hiệu năng", "column": "Độ bền", "value": 3 },
+        { "row": "Giá", "column": "Màn hình", "value": "4/3" },
+        { "row": "Giá", "column": "Pin", "value": "1/3" },
+        { "row": "Giá", "column": "Thiết kế", "value": "1/2" },
+        { "row": "Giá", "column": "Độ bền", "value": 2 },
+        { "row": "Màn hình", "column": "Pin", "value": "1/4" },
+        { "row": "Màn hình", "column": "Thiết kế", "value": "1/3" },
+        { "row": "Màn hình", "column": "Độ bền", "value": "3/2" },
+        { "row": "Pin", "column": "Thiết kế", "value": "7/5" },
+        { "row": "Pin", "column": "Độ bền", "value": 5 },
+        { "row": "Thiết kế", "column": "Độ bền", "value": 4 }
+      ]
+    },
+    {
+      "comparisons": [
+        { "row": "Hiệu năng", "column": "Giá", "value": "4/3" },
+        { "row": "Hiệu năng", "column": "Màn hình", "value": 2 },
+        { "row": "Hiệu năng", "column": "Pin", "value": "1/3" },
+        { "row": "Hiệu năng", "column": "Thiết kế", "value": "1/4" },
+        { "row": "Hiệu năng", "column": "Độ bền", "value": 2 },
+        { "row": "Giá", "column": "Màn hình", "value": "3/2" },
+        { "row": "Giá", "column": "Pin", "value": "1/4" },
+        { "row": "Giá", "column": "Thiết kế", "value": "1/5" },
+        { "row": "Giá", "column": "Độ bền", "value": "3/2" },
+        { "row": "Màn hình", "column": "Pin", "value": "1/5" },
+        { "row": "Màn hình", "column": "Thiết kế", "value": "1/6" },
+        { "row": "Màn hình", "column": "Độ bền", "value": 1 },
+        { "row": "Pin", "column": "Thiết kế", "value": "3/4" },
+        { "row": "Pin", "column": "Độ bền", "value": 4 },
+        { "row": "Thiết kế", "column": "Độ bền", "value": 5 }
+      ]
+    },
+    {
+      "comparisons": [
+        { "row": "Hiệu năng", "column": "Giá", "value": "3/2" },
+        { "row": "Hiệu năng", "column": "Màn hình", "value": "2/3" },
+        { "row": "Hiệu năng", "column": "Pin", "value": "1/2" },
+        { "row": "Hiệu năng", "column": "Thiết kế", "value": "1/3" },
+        { "row": "Hiệu năng", "column": "Độ bền", "value": 2 },
+        { "row": "Giá", "column": "Màn hình", "value": "1/2" },
+        { "row": "Giá", "column": "Pin", "value": "1/3" },
+        { "row": "Giá", "column": "Thiết kế", "value": "1/4" },
+        { "row": "Giá", "column": "Độ bền", "value": "4/3" },
+        { "row": "Màn hình", "column": "Pin", "value": "3/4" },
+        { "row": "Màn hình", "column": "Thiết kế", "value": "1/2" },
+        { "row": "Màn hình", "column": "Độ bền", "value": 3 },
+        { "row": "Pin", "column": "Thiết kế", "value": "2/3" },
+        { "row": "Pin", "column": "Độ bền", "value": 4 },
+        { "row": "Thiết kế", "column": "Độ bền", "value": 5 }
+      ]
+    }
+  ],
+  "office": [
+    {
+      "comparisons": [
+        { "row": "Hiệu năng", "column": "Giá", "value": "3/2" },
+        { "row": "Hiệu năng", "column": "Màn hình", "value": 3 },
+        { "row": "Hiệu năng", "column": "Pin", "value": 2 },
+        { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+        { "row": "Hiệu năng", "column": "Độ bền", "value": 5 },
+        { "row": "Giá", "column": "Màn hình", "value": 2 },
+        { "row": "Giá", "column": "Pin", "value": "3/2" },
+        { "row": "Giá", "column": "Thiết kế", "value": 3 },
+        { "row": "Giá", "column": "Độ bền", "value": 4 },
+        { "row": "Màn hình", "column": "Pin", "value": "2/3" },
+        { "row": "Màn hình", "column": "Thiết kế", "value": "3/2" },
+        { "row": "Màn hình", "column": "Độ bền", "value": 2 },
+        { "row": "Pin", "column": "Thiết kế", "value": 2 },
+        { "row": "Pin", "column": "Độ bền", "value": 3 },
+        { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+      ]
+    },
+    {
+      "comparisons": [
+        { "row": "Hiệu năng", "column": "Giá", "value": 2 },
+        { "row": "Hiệu năng", "column": "Màn hình", "value": "3/2" },
+        { "row": "Hiệu năng", "column": "Pin", "value": "3/2" },
+        { "row": "Hiệu năng", "column": "Thiết kế", "value": 4 },
+        { "row": "Hiệu năng", "column": "Độ bền", "value": 5 },
+        { "row": "Giá", "column": "Màn hình", "value": "2/3" },
+        { "row": "Giá", "column": "Pin", "value": "3/4" },
+        { "row": "Giá", "column": "Thiết kế", "value": 2 },
+        { "row": "Giá", "column": "Độ bền", "value": 3 },
+        { "row": "Màn hình", "column": "Pin", "value": 1 },
+        { "row": "Màn hình", "column": "Thiết kế", "value": 3 },
+        { "row": "Màn hình", "column": "Độ bền", "value": 4 },
+        { "row": "Pin", "column": "Thiết kế", "value": 3 },
+        { "row": "Pin", "column": "Độ bền", "value": 4 },
+        { "row": "Thiết kế", "column": "Độ bền", "value": "3/2" }
+      ]
+    },
+    {
+      "comparisons": [
+        { "row": "Hiệu năng", "column": "Giá", "value": "5/4" },
+        { "row": "Hiệu năng", "column": "Màn hình", "value": "4/3" },
+        { "row": "Hiệu năng", "column": "Pin", "value": "3/2" },
+        { "row": "Hiệu năng", "column": "Thiết kế", "value": 3 },
+        { "row": "Hiệu năng", "column": "Độ bền", "value": 4 },
+        { "row": "Giá", "column": "Màn hình", "value": 1 },
+        { "row": "Giá", "column": "Pin", "value": "5/4" },
+        { "row": "Giá", "column": "Thiết kế", "value": "5/2" },
+        { "row": "Giá", "column": "Độ bền", "value": 3 },
+        { "row": "Màn hình", "column": "Pin", "value": "5/4" },
+        { "row": "Màn hình", "column": "Thiết kế", "value": "5/2" },
+        { "row": "Màn hình", "column": "Độ bền", "value": 3 },
+        { "row": "Pin", "column": "Thiết kế", "value": 2 },
+        { "row": "Pin", "column": "Độ bền", "value": "5/2" },
+        { "row": "Thiết kế", "column": "Độ bền", "value": "4/3" }
+      ]
+    }
+  ],
+  "gaming": [
+    {
+      "comparisons": [
+        { "row": "Hiệu năng", "column": "Giá", "value": 7 },
+        { "row": "Hiệu năng", "column": "Màn hình", "value": 4 },
+        { "row": "Hiệu năng", "column": "Pin", "value": 9 },
+        { "row": "Hiệu năng", "column": "Thiết kế", "value": 8 },
+        { "row": "Hiệu năng", "column": "Độ bền", "value": 9 },
+        { "row": "Giá", "column": "Màn hình", "value": "1/2" },
+        { "row": "Giá", "column": "Pin", "value": 2 },
+        { "row": "Giá", "column": "Thiết kế", "value": "3/2" },
+        { "row": "Giá", "column": "Độ bền", "value": 3 },
+        { "row": "Màn hình", "column": "Pin", "value": 4 },
+        { "row": "Màn hình", "column": "Thiết kế", "value": 2 },
+        { "row": "Màn hình", "column": "Độ bền", "value": 5 },
+        { "row": "Pin", "column": "Thiết kế", "value": "1/2" },
+        { "row": "Pin", "column": "Độ bền", "value": "3/2" },
+        { "row": "Thiết kế", "column": "Độ bền", "value": 2 }
+      ]
+    },
+    {
+      "comparisons": [
+        { "row": "Hiệu năng", "column": "Giá", "value": 5 },
+        { "row": "Hiệu năng", "column": "Màn hình", "value": "5/3" },
+        { "row": "Hiệu năng", "column": "Pin", "value": 7 },
+        { "row": "Hiệu năng", "column": "Thiết kế", "value": 6 },
+        { "row": "Hiệu năng", "column": "Độ bền", "value": 8 },
+        { "row": "Giá", "column": "Màn hình", "value": "1/3" },
+        { "row": "Giá", "column": "Pin", "value": 2 },
+        { "row": "Giá", "column": "Thiết kế", "value": "3/2" },
+        { "row": "Giá", "column": "Độ bền", "value": 3 },
+        { "row": "Màn hình", "column": "Pin", "value": 5 },
+        { "row": "Màn hình", "column": "Thiết kế", "value": 4 },
+        { "row": "Màn hình", "column": "Độ bền", "value": 6 },
+        { "row": "Pin", "column": "Thiết kế", "value": "3/4" },
+        { "row": "Pin", "column": "Độ bền", "value": "3/2" },
+        { "row": "Thiết kế", "column": "Độ bền", "value": 2 }
+      ]
+    },
+    {
+      "comparisons": [
+        { "row": "Hiệu năng", "column": "Giá", "value": 3 },
+        { "row": "Hiệu năng", "column": "Màn hình", "value": "3/2" },
+        { "row": "Hiệu năng", "column": "Pin", "value": 6 },
+        { "row": "Hiệu năng", "column": "Thiết kế", "value": 5 },
+        { "row": "Hiệu năng", "column": "Độ bền", "value": 7 },
+        { "row": "Giá", "column": "Màn hình", "value": "1/2" },
+        { "row": "Giá", "column": "Pin", "value": 3 },
+        { "row": "Giá", "column": "Thiết kế", "value": 2 },
+        { "row": "Giá", "column": "Độ bền", "value": 4 },
+        { "row": "Màn hình", "column": "Pin", "value": 4 },
+        { "row": "Màn hình", "column": "Thiết kế", "value": 3 },
+        { "row": "Màn hình", "column": "Độ bền", "value": 5 },
+        { "row": "Pin", "column": "Thiết kế", "value": "2/3" },
+        { "row": "Pin", "column": "Độ bền", "value": 2 },
+        { "row": "Thiết kế", "column": "Độ bền", "value": 2 }
+      ]
+    }
+  ]
+}

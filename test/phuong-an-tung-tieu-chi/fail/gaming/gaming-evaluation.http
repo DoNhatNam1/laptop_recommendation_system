@@ -1,0 +1,111 @@
+### Đánh giá laptop gaming - THỦ CÔNG (so sánh 3 laptop tầm trung)
+POST http://localhost:5000/api/evaluate-laptops
+Content-Type: application/json
+
+{
+  "criteria_weights": {
+    "Hiệu năng": 0.623,
+    "Giá": 0.089,
+    "Màn hình": 0.142,
+    "Pin": 0.045,
+    "Thiết kế": 0.073,
+    "Độ bền": 0.028
+  },
+  "filtered_laptops": [
+    {
+      "battery": 25000,
+      "build_quality": "medium",
+      "cpu": "AMD Ryzen 5 7640HS",
+      "design": "gaming",
+      "gpu": "RTX 4050 6GB",
+      "id": "acer-nitro-5-047",
+      "name": "Acer Nitro 5",
+      "performance": "advanced",
+      "price": 23000000,
+      "ram": "16GB DDR5",
+      "screen": "15.6",
+      "screen_name": "15.6\" FHD 144Hz",
+      "storage": "512GB SSD",
+      "usage": "gaming"
+    },
+    {
+      "battery": 28000,
+      "build_quality": "military-grade",
+      "cpu": "AMD Ryzen 7 7840HS",
+      "design": "gaming",
+      "gpu": "RTX 4060 8GB",
+      "id": "asus-tuf-gaming-a15-055",
+      "name": "Asus TUF Gaming A15",
+      "performance": "advanced",
+      "price": 26000000,
+      "ram": "16GB DDR5",
+      "screen": "15.6",
+      "screen_name": "15.6\" FHD 165Hz",
+      "storage": "1TB SSD",
+      "usage": "gaming"
+    },
+    {
+      "battery": 27000,
+      "build_quality": "medium",
+      "cpu": "Intel Core i7-13700H",
+      "design": "gaming",
+      "gpu": "RTX 4060 8GB",
+      "id": "msi-katana-17-068",
+      "name": "MSI Katana 17",
+      "performance": "advanced",
+      "price": 28500000,
+      "ram": "16GB DDR5",
+      "screen": "17.3",
+      "screen_name": "17.3\" FHD 144Hz",
+      "storage": "1TB SSD",
+      "usage": "gaming"
+    }
+  ],
+  "evaluationMethod": "manual",
+  "selectedLaptops": [
+    {
+      "id": "acer-nitro-5-047",
+      "name": "Acer Nitro 5"
+    },
+    {
+      "id": "asus-tuf-gaming-a15-055",
+      "name": "Asus TUF Gaming A15"
+    },
+    {
+      "id": "msi-katana-17-068",
+      "name": "MSI Katana 17"
+    }
+  ],
+  "laptopComparisons": {
+    "Hiệu năng": [
+      { "row": "Acer Nitro 5", "column": "Asus TUF Gaming A15", "value": "1/3" },
+      { "row": "Acer Nitro 5", "column": "MSI Katana 17", "value": 3 },
+      { "row": "Asus TUF Gaming A15", "column": "MSI Katana 17", "value": 5 }
+    ],
+    "Giá": [
+      { "row": "Acer Nitro 5", "column": "Asus TUF Gaming A15", "value": "8/7" },
+      { "row": "Acer Nitro 5", "column": "MSI Katana 17", "value": "9/7" },
+      { "row": "Asus TUF Gaming A15", "column": "MSI Katana 17", "value": "3/5" }
+    ],
+    "Màn hình": [
+      { "row": "Acer Nitro 5", "column": "Asus TUF Gaming A15", "value": "1/5" },
+      { "row": "Acer Nitro 5", "column": "MSI Katana 17", "value": "1/7" },
+      { "row": "Asus TUF Gaming A15", "column": "MSI Katana 17", "value": "1/2" }
+    ],
+    "Pin": [
+      { "row": "Acer Nitro 5", "column": "Asus TUF Gaming A15", "value": "5/6" },
+      { "row": "Acer Nitro 5", "column": "MSI Katana 17", "value": "5/7" },
+      { "row": "Asus TUF Gaming A15", "column": "MSI Katana 17", "value": "2/3" }
+    ],
+    "Thiết kế": [
+      { "row": "Acer Nitro 5", "column": "Asus TUF Gaming A15", "value": "1/3" },
+      { "row": "Acer Nitro 5", "column": "MSI Katana 17", "value": 5 },
+      { "row": "Asus TUF Gaming A15", "column": "MSI Katana 17", "value": 8 }
+    ],
+    "Độ bền": [
+      { "row": "Acer Nitro 5", "column": "Asus TUF Gaming A15", "value": "1/5" },
+      { "row": "Acer Nitro 5", "column": "MSI Katana 17", "value": 1 },
+      { "row": "Asus TUF Gaming A15", "column": "MSI Katana 17", "value": 6 }
+    ]
+  }
+}

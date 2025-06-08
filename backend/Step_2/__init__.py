@@ -2,8 +2,8 @@ from .stage1 import filter_laptops
 from .stage2 import build_comparison_matrices
 from .stage3 import calculate_criteria_totals
 from .stage4 import normalize_comparison_matrices
-from .stage5 import calculate_criteria_weights
-from .stage6 import calculate_lambda_max
+from .stage5 import calculate_alternative_priorities
+from .stage6 import step2_calculate_lambda_max
 from .stage7 import check_consistency_ratio
 from .stage8 import calculate_final_scores
 
@@ -26,8 +26,8 @@ __all__ = [
     'build_comparison_matrices',
     'calculate_criteria_totals',
     'normalize_comparison_matrices',
-    'calculate_criteria_weights',
-    'calculate_lambda_max',
+    'calculate_alternative_priorities',
+    'step2_calculate_lambda_max',
     'check_consistency_ratio',
     'calculate_final_scores',
     'STAGE_PROGRESS'

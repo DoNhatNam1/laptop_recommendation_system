@@ -1,0 +1,111 @@
+### Đánh giá laptop di động - THỦ CÔNG (so sánh 3 laptop khác nhau)
+POST http://localhost:5000/api/evaluate-laptops
+Content-Type: application/json
+
+{
+  "criteria_weights": {
+    "Hiệu năng": 0.146,
+    "Giá": 0.093,
+    "Màn hình": 0.183,
+    "Pin": 0.278,
+    "Thiết kế": 0.246,
+    "Độ bền": 0.054
+  },
+  "filtered_laptops": [
+    {
+      "battery": 42000,
+      "build_quality": "medium",
+      "cpu": "AMD Ryzen 7 5825U",
+      "design": "lightweight",
+      "gpu": "AMD Radeon Graphics",
+      "id": "hp-pavilion-aero-13-086",
+      "name": "HP Pavilion Aero 13",
+      "performance": "smooth",
+      "price": 18500000,
+      "ram": "16GB LPDDR4X",
+      "screen": "13.3",
+      "screen_name": "13.3\" QHD IPS",
+      "storage": "512GB SSD",
+      "usage": "mobility"
+    },
+    {
+      "battery": 62000,
+      "build_quality": "high",
+      "cpu": "Intel Core i5-1340P",
+      "design": "lightweight",
+      "gpu": "Intel Iris Xe Graphics",
+      "id": "lg-gram-14-134",
+      "name": "LG Gram 14",
+      "performance": "smooth",
+      "price": 29000000,
+      "ram": "16GB LPDDR5",
+      "screen": "14.0",
+      "screen_name": "14\" WUXGA IPS",
+      "storage": "512GB SSD",
+      "usage": "mobility"
+    },
+    {
+      "battery": 41000,
+      "build_quality": "medium",
+      "cpu": "Intel Core i7-1355U",
+      "design": "lightweight",
+      "gpu": "Intel Iris Xe Graphics",
+      "id": "hp-pavilion-plus-14-173",
+      "name": "HP Pavilion Plus 14",
+      "performance": "smooth",
+      "price": 22500000,
+      "ram": "16GB DDR4",
+      "screen": "14.0",
+      "screen_name": "14\" 2.2K OLED",
+      "storage": "512GB SSD",
+      "usage": "mobility"
+    }
+  ],
+  "evaluationMethod": "manual",
+  "selectedLaptops": [
+    {
+      "id": "hp-pavilion-aero-13-086",
+      "name": "HP Pavilion Aero 13"
+    },
+    {
+      "id": "lg-gram-14-134",
+      "name": "LG Gram 14"
+    },
+    {
+      "id": "hp-pavilion-plus-14-173",
+      "name": "HP Pavilion Plus 14"
+    }
+  ],
+  "laptopComparisons": {
+    "Hiệu năng": [
+      { "row": "HP Pavilion Aero 13", "column": "LG Gram 14", "value": 3 },
+      { "row": "HP Pavilion Aero 13", "column": "HP Pavilion Plus 14", "value": "1/3" },
+      { "row": "LG Gram 14", "column": "HP Pavilion Plus 14", "value": "1/5" }
+    ],
+    "Giá": [
+      { "row": "HP Pavilion Aero 13", "column": "LG Gram 14", "value": 3 },
+      { "row": "HP Pavilion Aero 13", "column": "HP Pavilion Plus 14", "value": 2 },
+      { "row": "LG Gram 14", "column": "HP Pavilion Plus 14", "value": "1/2" }
+    ],
+    "Màn hình": [
+      { "row": "HP Pavilion Aero 13", "column": "LG Gram 14", "value": 1 },
+      { "row": "HP Pavilion Aero 13", "column": "HP Pavilion Plus 14", "value": "1/4" },
+      { "row": "LG Gram 14", "column": "HP Pavilion Plus 14", "value": 2 }
+    ],
+    "Pin": [
+      { "row": "HP Pavilion Aero 13", "column": "LG Gram 14", "value": "1/3" },
+      { "row": "HP Pavilion Aero 13", "column": "HP Pavilion Plus 14", "value": 1 },
+      { "row": "LG Gram 14", "column": "HP Pavilion Plus 14", "value": 5 }
+    ],
+    "Thiết kế": [
+      { "row": "HP Pavilion Aero 13", "column": "LG Gram 14", "value": "1/2" },
+      { "row": "HP Pavilion Aero 13", "column": "HP Pavilion Plus 14", "value": 2 },
+      { "row": "LG Gram 14", "column": "HP Pavilion Plus 14", "value": 4 }
+    ],
+    "Độ bền": [
+      { "row": "HP Pavilion Aero 13", "column": "LG Gram 14", "value": "1/2" },
+      { "row": "HP Pavilion Aero 13", "column": "HP Pavilion Plus 14", "value": 3 },
+      { "row": "LG Gram 14", "column": "HP Pavilion Plus 14", "value": 5 }
+    ]
+  }
+}
