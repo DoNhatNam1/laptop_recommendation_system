@@ -96,19 +96,74 @@ Nếu khách hàng không chọn mức độ ưu tiên cụ thể cho các tiêu
 1. **Khách hàng truy cập website** và chọn **Mục đích sử dụng** phù hợp với nhu cầu của họ.
 2. Hệ thống gán nhóm laptop phù hợp theo **Mục đích sử dụng**.
 3. Nếu khách hàng muốn tinh chỉnh thêm, họ có thể chọn mức độ ưu tiên cho các tiêu chí khác (Giá, Hiệu năng, v.v.).
-4. Thuật toán AHP sẽ thực hiện:
+4. **So sánh cặp tiêu chí** để xác định mức độ quan trọng tương đối giữa các tiêu chí.
+5. Thuật toán AHP sẽ thực hiện:
    - **Xây dựng ma trận so sánh cặp** giữa các tiêu chí dựa trên mức độ ưu tiên.
    - **Tính trọng số** cho từng tiêu chí.
    - **Tính điểm tổng hợp** cho từng laptop dựa trên dữ liệu thông số và trọng số.
-5. Hệ thống hiển thị **Top 3 - 5 laptop** phù hợp nhất kèm theo bảng so sánh và liên kết mua hàng.
+6. Hệ thống hiển thị **Top laptop phù hợp nhất** kèm theo bảng so sánh chi tiết và phân tích AHP.
 
 ---
 
-## 4. Kết luận
+## 4. Tính năng chính của hệ thống
+
+### 4.1. Đánh giá laptop
+
+- **Lựa chọn phương pháp đánh giá:**
+  - **Tự động:** Hệ thống tự động đánh giá laptop dựa trên thông số kỹ thuật
+  - **Thủ công:** Người dùng trực tiếp so sánh cặp laptop theo từng tiêu chí
+
+- **So sánh cặp laptop:**
+  - Giao diện trực quan để đánh giá mức độ ưu tiên giữa các laptop
+  - Thang đánh giá từ 1/9 đến 9 theo phương pháp AHP
+
+### 4.2. Kiểm tra tính nhất quán
+
+- **Tính toán hệ số nhất quán (CR - Consistency Ratio):**
+  - Đảm bảo CR < 0.1 cho tất cả các ma trận so sánh
+  - Cảnh báo và hướng dẫn người dùng khi đánh giá thiếu nhất quán
+
+- **Thông tin phân tích chi tiết:**
+  - Hiển thị λmax, CI (Consistency Index), RI (Random Index)
+  - Giải thích ý nghĩa của các chỉ số để người dùng hiểu rõ
+
+### 4.3. Quản lý và chia sẻ đánh giá
+
+- **Nhập/Xuất dữ liệu:**
+  - Xuất mẫu Excel để đánh giá offline
+  - Nhập dữ liệu đánh giá từ file Excel đã điền
+  - Xuất kết quả phân tích thành file PDF hoặc Excel đầy đủ
+
+- **Tự động lưu trữ:**
+  - Lưu kết quả tạm thời trong quá trình đánh giá
+  - Khôi phục phiên làm việc khi gặp sự cố
+
+### 4.4. Hiển thị kết quả phân tích
+
+- **Bảng xếp hạng laptop:**
+  - Xếp hạng laptop với điểm số tổng hợp
+  - Hiển thị thông số kỹ thuật chi tiết của mỗi laptop
+
+- **Thông tin chi tiết phân tích AHP:**
+  - Ma trận so sánh gốc
+  - Ma trận chuẩn hóa
+  - Vector nhất quán
+  - Vector ưu tiên (trọng số)
+
+- **Biểu đồ trực quan:**
+  - Biểu đồ tròn thể hiện trọng số các tiêu chí
+  - Biểu đồ trọng số laptop theo từng tiêu chí
+  - So sánh trực quan giữa các lựa chọn
+
+---
+
+## 5. Kết luận
 
 - **Mục đích sử dụng** được đặt làm ưu tiên mặc định, giúp định hướng nhóm sản phẩm phù hợp ngay từ đầu.
 - **Sắp xếp thứ tự ưu tiên** cho phép người dùng tinh chỉnh các yếu tố khác để đạt được kết quả tư vấn chính xác hơn.
-- Kết hợp AHP với lựa chọn này giúp đưa ra quyết định toàn diện, vượt qua bộ lọc thông thường chỉ dựa trên các tiêu chí độc lập.
+- **Phân tích AHP chi tiết** giúp người dùng hiểu rõ cơ sở của các đề xuất và có quyết định mua sắm sáng suốt hơn.
+- **Tính năng xuất/nhập dữ liệu** tạo sự linh hoạt trong việc đánh giá và chia sẻ kết quả.
+- Kết hợp AHP với các phương pháp đánh giá giúp đưa ra quyết định toàn diện, vượt qua bộ lọc thông thường chỉ dựa trên các tiêu chí độc lập.
 
 ---
 
