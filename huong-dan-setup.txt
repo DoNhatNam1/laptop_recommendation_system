@@ -1,0 +1,167 @@
+HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY HỆ THỐNG TƯ VẤN MUA LAPTOP
+
+YÊU CẦU HỆ THỐNG
+- Python 3.10 hoặc cao hơn
+- Node.js (phiên bản 18 hoặc cao hơn)
+- Docker và Docker Compose
+- Git
+- pip (Python) và npm (Node.js)
+
+1. CLONE DỰ ÁN
+git clone https://github.com/username/laptop_recommendation_system.git
+cd laptop_recommendation_system
+
+2. THIẾT LẬP DATABASE VỚI DOCKER COMPOSE
+
+2.1. Tạo file docker-compose.yml
+Tạo file docker-compose.yml ở thư mục gốc với nội dung:
+
+version: '3'
+services:
+  postgres:
+    image: postgres:15
+    container_name: laptop_recommendation_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: laptop_recommendation
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+
+2.2. Khởi động database
+docker-compose up -d
+
+3. CÀI ĐẶT VÀ SEED DATABASE
+
+3.1. Đi đến thư mục ql_db
+cd ql_db
+
+3.2. Cài đặt dependencies
+npm install
+
+3.3. Khởi tạo database schema với Prisma
+npx prisma migrate dev --name init
+
+3.4. Thực hiện seed data
+npm run db:seed
+
+4. CÀI ĐẶT VÀ CHẠY BACKEND (PYTHON)
+
+4.1. Di chuyển đến thư mục backend
+cd ../backend
+
+4.2. Tạo môi trường ảo Python (khuyến nghị)
+python -m venv venv
+
+4.3. Kích hoạt môi trường ảo
+# Windows
+venv\Scripts\activate
+# macOS/Linux
+source venv/bin/activate
+
+4.4. Cài đặt dependencies Python
+pip install -r requirements.txt
+
+4.5. Tạo file .env (nếu chưa có)
+Tạo file .env trong thư mục backend với nội dung:
+
+PORT=5000
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/laptop_recommendation"
+
+4.6. Khởi động backend Python
+python main.py
+
+Backend sẽ chạy ở địa chỉ http://localhost:5000
+
+5. CÀI ĐẶT VÀ CHẠY FRONTEND
+
+5.1. Mở terminal mới và di chuyển đến thư mục frontend
+cd ../frontend
+
+5.2. Cài đặt dependencies
+npm install
+
+5.3. Tạo file .env (nếu chưa có)
+Tạo file .env trong thư mục frontend với nội dung:
+
+VITE_API_URL=http://localhost:5000
+
+5.4. Khởi động frontend
+npm run dev
+
+Frontend sẽ chạy ở địa chỉ http://localhost:5173
+
+6. KIỂM TRA HỆ THỐNG
+
+- Database đang chạy trong Docker container "laptop_recommendation_db"
+- Backend Python API đang chạy ở http://localhost:5000
+- Frontend đang chạy ở http://localhost:5173
+
+6.1. Kiểm tra API backend
+Truy cập http://localhost:5000/api/laptops để kiểm tra API đã hoạt động hay chưa
+
+6.2. Mở ứng dụng web
+Truy cập http://localhost:5173 trong trình duyệt để sử dụng ứng dụng
+
+7. XỬ LÝ SỰ CỐ THƯỜNG GẶP
+
+7.1. Lỗi kết nối database
+- Kiểm tra Docker container đang chạy: docker ps
+- Kiểm tra logs của container: docker logs laptop_recommendation_db
+- Đảm bảo thông tin kết nối trong file .env đúng
+
+7.2. Lỗi backend Python
+- Kiểm tra logs của backend Python
+- Đảm bảo đã cài đặt đầy đủ dependencies: pip install -r requirements.txt
+- Kiểm tra PORT 5000 không bị chiếm bởi ứng dụng khác
+- Kiểm tra môi trường ảo Python đã được kích hoạt
+
+7.3. Lỗi frontend
+- Đảm bảo VITE_API_URL trong .env trỏ đúng đến backend
+- Kiểm tra console trình duyệt để xem lỗi chi tiết
+- Xóa thư mục node_modules và cài lại: rm -rf node_modules && npm install
+
+8. CÁC LỆNH HỮU ÍCH
+
+Database:
+# Xem logs của database
+docker logs laptop_recommendation_db
+
+# Truy cập vào database qua psql
+docker exec -it laptop_recommendation_db psql -U postgres -d laptop_recommendation
+
+# Dừng database
+docker-compose down
+
+# Xóa hoàn toàn dữ liệu và container
+docker-compose down -v
+
+Backend Python:
+# Kích hoạt môi trường ảo (Windows)
+venv\Scripts\activate
+
+# Kích hoạt môi trường ảo (macOS/Linux)
+source venv/bin/activate
+
+# Cài đặt lại dependencies
+pip install -r requirements.txt
+
+# Hiển thị các gói đã cài đặt
+pip list
+
+Frontend:
+# Build production
+npm run build
+
+# Chạy linting
+npm run lint
+
+9. LIÊN HỆ HỖ TRỢ
+Nếu gặp vấn đề trong quá trình cài đặt, vui lòng liên hệ:
+- Email: example@email.com
+- GitHub: github.com/username/laptop_recommendation_system
